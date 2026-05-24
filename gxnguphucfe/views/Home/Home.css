@@ -1,0 +1,234 @@
+/* ================================
+   HERO SECTION
+================================ */
+.hero-section {
+  position: relative;
+  height: 100vh;
+  background-image: url('/images/hero.jpg'); /* đổi đúng path */
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+/* overlay tối */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+
+/* CONTENT */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  color: #fff;
+  padding: 0 16px;
+}
+
+/* BADGE */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 24px;
+
+  padding: 6px 16px;
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px);
+
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* DOT */
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: #facc15;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* TITLE */
+.hero-title {
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+/* SUBTITLE */
+.hero-subtitle {
+  font-size: 18px;
+  font-style: italic;
+  opacity: 0.9;
+  margin-bottom: 32px;
+}
+
+/* ACTIONS */
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* BUTTONS */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 12px 22px;
+  border-radius: 14px;
+
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.btn-primary {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #1e40af;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.hero-wrapper {
+  position: relative;
+  height: 100vh;
+  overflow: visible;
+  isolation: auto;
+}
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1s ease;
+  z-index: 0;
+}
+
+/* ================================
+   QUICK ACTIONS
+================================ */
+/* ================================
+   QUICK ACTIONS (FIX GIỐNG HÌNH)
+================================ */
+.quick-actions-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: -90px; /* chỉ nhô ra nhẹ */
+  transform: translateX(-50%);
+  z-index: 9;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+
+.quick-actions-wrapper {
+  background: white;
+  border-radius: 20px;
+  padding: 24px 32px;
+  width: 80%;
+  max-width: 1100px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.quick-action-item {
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.quick-action-item span {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+  color: #111;
+}
+
+.quick-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+/* ICON COLORS */
+.quick-icon.bg-blue {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.quick-icon.bg-green {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.quick-icon.bg-yellow {
+  background: #fff8e1;
+  color: #f9a825;
+}
+
+.quick-icon.bg-red {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ================================
+   NEXT SECTION
+================================ */
+.next-section {
+  padding-top: 130px;
+}

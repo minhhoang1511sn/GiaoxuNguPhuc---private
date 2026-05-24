@@ -1,0 +1,135 @@
+/* ==============================
+   LOGIN PAGE – REFINED VERSION
+============================== */
+
+.login-page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* gradient giống ảnh */
+  background: linear-gradient(135deg, #3b5bfd, #6a5cff);
+}
+
+/* CARD */
+.login-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 430px;
+  padding: 3rem 2.75rem;
+  border-radius: 22px;
+
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* HEADER */
+.login-card h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.login-card p {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 1.75rem;
+}
+
+/* FORM */
+.login-card .form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.35rem;
+}
+
+.login-card .form-control {
+  padding: 0.8rem 1rem;
+  border-radius: 999px; /* pill */
+  border: none;
+  background: #eef4ff;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+.login-card .email-input{
+  width: 100%;
+}
+.login-card .password-input{
+  width: 100%;
+}
+
+.login-card .form-control::placeholder {
+  color: #9ca3af;
+}
+
+.login-card .form-control:focus {
+  outline: none;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* CHECKBOX */
+.form-check-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.form-check-label {
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+/* LINKS */
+.login-card a {
+  font-size: 0.85rem;
+  color: #5b5cf6;
+  font-weight: 500;
+}
+
+.login-card a:hover {
+  text-decoration: underline;
+}
+
+/* BUTTON */
+.login-card .btn {
+  width: 100%;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.8rem;
+  margin-top: 1rem;
+
+  background: linear-gradient(135deg, #5b5cf6, #6d5dfc);
+  border: none;
+  color: #fff;
+
+  transition: all 0.3s ease;
+}
+
+.login-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(91, 92, 246, 0.45);
+}
+
+/* FOOTER */
+.login-card .text-center {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.login-card form {
+  width: 100%;
+}
+
+.login-card .form-group,
+.login-card .mb-3 {
+  width: 100%;
+}

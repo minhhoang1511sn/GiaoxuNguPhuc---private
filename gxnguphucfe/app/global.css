@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --ink: #0a0a0f;
+  --paper: #f5f0e8;
+  --rust: #c4472a;
+  --gold: #d4a843;
+  --muted: #8a8070;
+  --border: #d8d0c0;
+}   
