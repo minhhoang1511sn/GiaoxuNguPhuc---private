@@ -1,8 +1,8 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import Header from '@/components/layouts/Header/Header';
-import Footer from '@/components/layouts/Footer/Footer';
+import Header from './Header/Header';
+import Footer from './Footer/Footer';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();

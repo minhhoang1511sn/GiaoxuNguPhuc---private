@@ -1,62 +1,57 @@
-/* ==============================
-   AUTH PAGE (REGISTER) – MATCH LOGIN
-============================== */
-
-.auth-page {
+.authPage {
   width: 100vw;
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* giống login */
   background: linear-gradient(135deg, #3b5bfd, #6a5cff);
 }
 
-/* CARD */
-.auth-card {
+.authCard {
   background: #ffffff;
   width: 100%;
-  max-width: 430px; /* giống login */
+  max-width: 430px;
   padding: 3rem 2.75rem;
   border-radius: 22px;
-
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.15),
     0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
-/* HEADER (nếu có h2, p) */
-.auth-card h2 {
+.authCard h2 {
   font-size: 1.6rem;
   font-weight: 800;
   color: #111827;
   margin-bottom: 0.25rem;
 }
 
-.auth-card p {
+.authCard p {
   font-size: 0.95rem;
   color: #6b7280;
   margin-bottom: 1.75rem;
 }
 
-/* FORM */
-.auth-card form,
-.auth-card .mb-3 {
+.authCard form {
   width: 100%;
 }
 
-.auth-card .form-label {
+.formGroup {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.formLabel {
+  display: block;
   font-size: 0.8rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.35rem;
 }
 
-.auth-card .form-control {
+.formControl {
   width: 100%;
   padding: 0.8rem 1rem;
-  border-radius: 999px; /* giống login */
+  border-radius: 999px;
   border: none;
   background: #eef4ff;
   font-size: 0.95rem;
@@ -64,33 +59,47 @@
   transition: all 0.25s ease;
 }
 
-.auth-card .form-control::placeholder {
+.formControl::placeholder {
   color: #9ca3af;
 }
 
-.auth-card .form-control:focus {
+.formControl:focus {
   outline: none;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
-/* BUTTON */
-.auth-card button {
+.btn {
   width: 100%;
   margin-top: 1rem;
   padding: 0.8rem;
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.95rem;
-
   background: linear-gradient(135deg, #5b5cf6, #6d5dfc);
   border: none;
   color: #ffffff;
-
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.auth-card button:hover {
+.btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 30px rgba(91, 92, 246, 0.45);
+}
+
+.textCenter {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #374151;
+  text-align: center;
+}
+
+.authCard a {
+  color: #5b5cf6;
+  font-weight: 600;
+}
+
+.authCard a:hover {
+  text-decoration: underline;
 }

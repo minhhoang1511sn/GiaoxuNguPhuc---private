@@ -4,14 +4,15 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import './Login.css';
+import styles from './page.module.css';
 import { useRouter } from 'next/navigation';
+
 export default function Login() {
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
-  // 👉 đảm bảo chỉ render ở client (fix hydration)
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -20,7 +21,6 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch("http://localhost:5109/api/auth/login", {
         method: "POST",
@@ -43,24 +43,24 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page d-flex align-items-center justify-content-center">
-      <div className="login-card shadow-lg">
+    <div className={styles.loginPage}>
+      <div className={styles.loginCard}>
+
         {/* HEADER */}
-        <div className="text-center mb-4">
-          <h2 className="fw-bold mb-1">Đăng nhập</h2>
-          <p className="text-muted">
-            Chào mừng bạn đến với Giáo Xứ Ngũ Phúc
-          </p>
+        <div className={styles.textCenter}>
+          <h2>Đăng nhập</h2>
+          <p>Chào mừng bạn đến với Giáo Xứ Ngũ Phúc</p>
         </div>
 
         {/* FORM */}
         <form onSubmit={handleSubmit}>
+
           {/* EMAIL */}
-          <div className="mb-3">
-            <label className="form-label">Email</label>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Email</label>
             <input
               type="email"
-              className="form-control email-input"
+              className={`${styles.formControl} ${styles.emailInput}`}
               placeholder="example@gmail.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -69,11 +69,11 @@ export default function Login() {
           </div>
 
           {/* PASSWORD */}
-          <div className="mb-3">
-            <label className="form-label">Mật khẩu</label>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Mật khẩu</label>
             <input
               type="password"
-              className="form-control password-input"
+              className={`${styles.formControl} ${styles.passwordInput}`}
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -82,39 +82,33 @@ export default function Login() {
           </div>
 
           {/* OPTIONS */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="form-check">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
-                className="form-check-input"
+                className={styles.formCheckInput}
                 type="checkbox"
                 id="remember"
               />
-              <label className="form-check-label" htmlFor="remember">
+              <label className={styles.formCheckLabel} htmlFor="remember">
                 Ghi nhớ đăng nhập
               </label>
             </div>
 
-            <Link href="#" className="text-decoration-none small">
-              Quên mật khẩu?
-            </Link>
+            <Link href="#">Quên mật khẩu?</Link>
           </div>
 
           {/* BUTTON */}
-          <button type="submit" className="btn btn-primary w-100 py-2">
+          <button type="submit" className={styles.btn}>
             Đăng nhập
           </button>
         </form>
 
         {/* FOOTER */}
-        <div className="text-center mt-4">
-          <span className="text-muted">Chưa có tài khoản?</span>{' '}
-          <Link
-            href="/auth/register"
-            className="fw-semibold text-decoration-none"
-          >
-            Đăng ký
-          </Link>
+        <div className={styles.textCenter}>
+          <span>Chưa có tài khoản?</span>{' '}
+          <Link href="/register">Đăng ký</Link>
         </div>
+
       </div>
     </div>
   );

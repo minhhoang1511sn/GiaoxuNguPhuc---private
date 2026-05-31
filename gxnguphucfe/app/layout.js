@@ -1,5 +1,5 @@
 import './globals.css';
-import ClientLayout from '@/components/layouts/ClientLayout';
+import ClientLayout from '../app/components/layouts/ClientLayout';
 
 export const metadata = {
   title: 'Giáo xứ Ngũ Phúc',

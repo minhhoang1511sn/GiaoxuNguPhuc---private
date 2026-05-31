@@ -10,7 +10,7 @@ const menuItems = [
     group: 'Nội dung',
     items: [
       { href: '/admin', icon: '▪', label: 'Tổng quan' },
-      { href: '/admin/bai-viet', icon: '✦', label: 'Bài viết', badge: 'CRUD' },
+      { href: '/admin/post', icon: '✦', label: 'Bài viết', badge: 'CRUD' },
       { href: '/admin/comment', icon: '◈', label: 'Bình luận', badge: 'CRUD' },
     ],
   },

@@ -13,9 +13,21 @@ namespace GiaoxuNguPhucBE.Models
         [Required, EmailAddress]
         public string Email { get; set; }
 
+        public string? AvatarUrl { get; set; }
+
+        public UserRole Role { get; set; } = UserRole.User;
+
         [Required]
         public string PasswordHash { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public ICollection<Post> Posts { get; set; } = new List<Post>();
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
+}
+public enum UserRole
+{
+    User = 0,
+    Admin = 1
 }

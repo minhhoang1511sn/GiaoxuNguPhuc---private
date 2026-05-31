@@ -6,12 +6,11 @@
   border-bottom: 1px solid #eee;
 }
 
-.header-container {
+.headerContainer {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px;
   height: 80px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -26,13 +25,12 @@
   font-size: 18px;
 }
 
-.logo-icon {
+.logoIcon {
   width: 44px;
   height: 44px;
   border-radius: 50%;
   background: #e6f0ff;
   color: #137fec;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,15 +67,14 @@
   background: #137fec;
   color: white;
   cursor: pointer;
-
-  display: flex; /* Đổi từ inline-block thành flex */
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.actions .menu {
-  background: transparent;
-  color: #333;
+.menu {
+  background: transparent !important;
+  color: #333 !important;
 }
 
 .actions button svg {

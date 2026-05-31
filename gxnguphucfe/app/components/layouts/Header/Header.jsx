@@ -1,23 +1,23 @@
 "use client";
-import './Header.css';
+import styles from './Header.module.css';
 import { MdCampaign, MdPerson, MdMenu } from 'react-icons/md';
 import { FaChurch } from 'react-icons/fa';
 import Link from "next/link"; 
 
 function Header() {
   return (
-    <header className="header">
-      <div className="header-container">
+    <header className={styles.header}>
+      <div className={styles.headerContainer}>
         {/* Logo */}
-        <div className="logo">
-          <div className="logo-icon">
+        <div className={styles.logo}>
+          <div className={styles.logoIcon}>
             <FaChurch size={20} />
           </div>
-          <span className="logo-text">Giáo xứ Ngũ Phúc</span>
+          <span className={styles.logoText}>Giáo xứ Ngũ Phúc</span>
         </div>
 
         {/* Menu */}
-        <nav className="nav">
+        <nav className={styles.nav}>
           <Link href="/">Trang chủ</Link>
           <Link href="/about">Giới thiệu</Link>
           <Link href="/news">Tin tức</Link>
@@ -29,16 +29,10 @@ function Header() {
         </nav>
 
         {/* Actions */}
-        <div className="actions">
-          <button>
-            <MdCampaign size={20} />
-          </button>
-          <button>
-            <MdPerson size={20} />
-          </button>
-          <button className="menu">
-            <MdMenu size={24} />
-          </button>
+        <div className={styles.actions}>
+          <button><MdCampaign size={20} /></button>
+          <button><MdPerson size={20} /></button>
+          <button className={styles.menu}><MdMenu size={24} /></button>
         </div>
       </div>
     </header>

@@ -353,3 +353,12 @@ body { font-family: var(--font); }
   color: #059669;
 }
 .quick-icon { font-size: 20px; }
+
+.stat-card--link {
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.stat-card--link:hover {
+  border-color: #2d3a5a;
+  transform: translateY(-2px);
+}

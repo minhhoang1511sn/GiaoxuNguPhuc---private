@@ -1,13 +1,13 @@
 'use client';
-
+import Link from 'next/link';
 export default function AdminDashboard() {
   const stats = [
-    { label: 'Bài viết', value: '128', delta: '+12', icon: '✦', color: '#6ee7b7' },
-    { label: 'Bình luận', value: '340', delta: '+28', icon: '◈', color: '#93c5fd' },
-    { label: 'Tài khoản', value: '56', delta: '+4', icon: '◎', color: '#fbbf24' },
-    { label: 'Khoá học', value: '14', delta: '+1', icon: '◆', color: '#f9a8d4' },
-    { label: 'Lượt xem', value: '8,291', delta: '+203', icon: '◐', color: '#a5b4fc' },
-    { label: 'Giáo sĩ', value: '7', delta: '—', icon: '◇', color: '#fdba74' },
+    { label: 'Bài viết', value: '128', delta: '+12', icon: '✦', color: '#6ee7b7', href: '/admin/post' },
+    { label: 'Bình luận', value: '340', delta: '+28', icon: '◈', color: '#93c5fd', href: '/admin/binh-luan' },
+    { label: 'Tài khoản', value: '56', delta: '+4', icon: '◎', color: '#fbbf24', href: '/admin/tai-khoan' },
+    { label: 'Khoá học', value: '14', delta: '+1', icon: '◆', color: '#f9a8d4', href: '/admin/khoa-hoc' },
+    { label: 'Lượt xem', value: '8,291', delta: '+203', icon: '◐', color: '#a5b4fc', href: null },
+    { label: 'Giáo sĩ', value: '7', delta: '—', icon: '◇', color: '#fdba74', href: '/admin/giao-si' },
   ];
 
   const recentActivity = [
@@ -24,18 +24,26 @@ export default function AdminDashboard() {
     <div className="dashboard">
       {/* Stats grid */}
       <section className="stats-grid">
-        {stats.map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-icon" style={{ color: s.color }}>{s.icon}</div>
-            <div className="stat-body">
-              <span className="stat-value">{s.value}</span>
-              <span className="stat-label">{s.label}</span>
+        {stats.map((s) => {
+          const card = (
+            <div className={`stat-card${s.href ? ' stat-card--link' : ''}`} key={s.label}>
+              <div className="stat-icon" style={{ color: s.color }}>{s.icon}</div>
+              <div className="stat-body">
+                <span className="stat-value">{s.value}</span>
+                <span className="stat-label">{s.label}</span>
+              </div>
+              <span className="stat-delta" style={{ color: s.delta === '—' ? '#6b7280' : '#6ee7b7' }}>
+                {s.delta}
+              </span>
             </div>
-            <span className="stat-delta" style={{ color: s.delta === '—' ? '#6b7280' : '#6ee7b7' }}>
-              {s.delta}
-            </span>
-          </div>
-        ))}
+          );
+
+          return s.href ? (
+            <Link key={s.label} href={s.href} style={{ textDecoration: 'none' }}>
+              {card}
+            </Link>
+          ) : card;
+        })}
       </section>
 
       {/* Bottom row */}
@@ -61,7 +69,7 @@ export default function AdminDashboard() {
           <h2 className="card-heading">Thao tác nhanh</h2>
           <div className="quick-grid">
             {[
-              { label: 'Thêm bài viết', icon: '✦', href: '/admin/bai-viet/new' },
+              { label: 'Thêm bài viết', icon: '✦', href: '/admin/post/new' },
               { label: 'Thêm khoá học', icon: '◆', href: '/admin/course/new' },
               { label: 'Gửi thông báo', icon: '◑', href: '/admin/notification/new' },
               { label: 'Thêm giáo sĩ', icon: '◇', href: '/admin/clergy/new' },
