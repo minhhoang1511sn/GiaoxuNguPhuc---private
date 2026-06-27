@@ -12,7 +12,7 @@ namespace GiaoxuNguPhucBE.Controllers
     {
         // ── Public Endpoints (User) ────────────────────────────────────────────────
 
-        /// <summary>GET /api/posts - Get all published posts (paginated)</summary>
+        /// <summary>GET /api/posts - Get all published posts (paginated, filter by category/tag/featured/pinned)</summary>
         [HttpGet]
         public async Task<ActionResult<PagedResult<PostListDto>>> GetPosts([FromQuery] PostQueryParams queryParams)
         {
@@ -20,13 +20,32 @@ namespace GiaoxuNguPhucBE.Controllers
             return Ok(result);
         }
 
-        /// <summary>GET /api/posts/{id} - Get post detail by id</summary>
+        /// <summary>GET /api/posts/featured - Get featured posts for homepage banner</summary>
+        [HttpGet("featured")]
+        public async Task<ActionResult<List<PostListDto>>> GetFeaturedPosts([FromQuery] int take = 5)
+        {
+            var result = await postService.GetFeaturedPostsAsync(take);
+            return Ok(result);
+        }
+
+        /// <summary>GET /api/posts/{id} - Get post detail by id (increments view count)</summary>
         [HttpGet("{id:int}")]
         public async Task<ActionResult<PostDetailDto>> GetPost(int id)
         {
-            var post = await postService.GetPostByIdAsync(id);
+            var post = await postService.GetPostByIdAsync(id, countView: true);
             if (post is null)
                 return NotFound(new ApiError($"Post with id {id} not found."));
+
+            return Ok(post);
+        }
+
+        /// <summary>GET /api/posts/slug/{slug} - Get post detail by friendly URL slug (increments view count)</summary>
+        [HttpGet("slug/{slug}")]
+        public async Task<ActionResult<PostDetailDto>> GetPostBySlug(string slug)
+        {
+            var post = await postService.GetPostBySlugAsync(slug, countView: true);
+            if (post is null)
+                return NotFound(new ApiError($"Post with slug '{slug}' not found."));
 
             return Ok(post);
         }
@@ -55,6 +74,10 @@ namespace GiaoxuNguPhucBE.Controllers
             {
                 return NotFound(new ApiError(ex.Message));
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiError(ex.Message));
+            }
         }
 
         // ── Admin Endpoints ────────────────────────────────────────────────────────
@@ -65,6 +88,17 @@ namespace GiaoxuNguPhucBE.Controllers
         {
             var result = await postService.GetPostsAsync(queryParams, publishedOnly: false);
             return Ok(result);
+        }
+
+        /// <summary>GET /api/posts/admin/{id} - Get post detail by id without incrementing view count (admin)</summary>
+        [HttpGet("admin/{id:int}")]
+        public async Task<ActionResult<PostDetailDto>> GetPostForAdmin(int id)
+        {
+            var post = await postService.GetPostByIdAsync(id, countView: false);
+            if (post is null)
+                return NotFound(new ApiError($"Post with id {id} not found."));
+
+            return Ok(post);
         }
 
         /// <summary>POST /api/posts - Create a new post (admin)</summary>

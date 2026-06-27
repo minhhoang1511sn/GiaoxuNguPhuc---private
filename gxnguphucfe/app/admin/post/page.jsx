@@ -1,210 +1,511 @@
 'use client';
 
-import { useState } from 'react';
-import './post.css';
+import { useState, useEffect, useCallback } from 'react';
+import styles from './post.module.css';
 
+/* ── Config ── */
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+const AUTHOR_ID = 1; // TODO: lấy từ auth context sau khi làm login
 
-const CATS = ['Tất cả', 'Lễ Phụng Vụ', 'Giáo Lý', 'Thông Báo', 'Tin Tức', 'Bài Giảng', 'Kinh Nguyện', 'Giới Trẻ'];
+const ICONS = ['✦', '◈', '▪', '◆', '◇', '◉', '◎', '◐', '◑', '◒'];
 
 const STATUS_CONFIG = {
-  published: { label: 'Đã đăng',  color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
-  draft:     { label: 'Bản nháp', color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', dot: '#64748b' },
-  review:    { label: 'Chờ duyệt',color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',  dot: '#f59e0b' },
+  Published: { label: 'Đã đăng',   color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
+  Draft:     { label: 'Bản nháp',  color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', dot: '#64748b' },
+  Review:    { label: 'Chờ duyệt', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',   dot: '#f59e0b' },
 };
 
-const STATUSES = [
+const STATUS_API = {
+  Published: 1,
+  Draft:     0,
+  Review:    2,
+};
+
+const STATUSES_FILTER = [
   { key: 'all',       label: 'Tất cả' },
-  { key: 'published', label: 'Đã đăng' },
-  { key: 'draft',     label: 'Bản nháp' },
-  { key: 'review',    label: 'Chờ duyệt' },
+  { key: 'Published', label: 'Đã đăng' },
+  { key: 'Draft',     label: 'Bản nháp' },
+  { key: 'Review',    label: 'Chờ duyệt' },
 ];
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
+const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', status: 'Draft' };
 
-function formatDate(d) {
-  return new Date(d).toLocaleDateString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export default function PostsPage() {
-  const [search, setSearch]       = useState('');
-  const [activeCat, setActiveCat] = useState('Tất cả');
-  const [activeSt, setActiveSt]   = useState('all');
-  const [selected, setSelected]   = useState([]);
-  const [page, setPage]           = useState(1);
-  const [posts, setPosts]           = useState([]);
-
-  const filtered = posts.filter(p => {
-    const mq = p.title.toLowerCase().includes(search.toLowerCase()) ||
-               p.author.toLowerCase().includes(search.toLowerCase());
-    const mc = activeCat === 'Tất cả' || p.category === activeCat;
-    const ms = activeSt === 'all' || p.status === activeSt;
-    return mq && mc && ms;
+/* ════════════════════════════════
+   API helpers
+════════════════════════════════ */
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${BASE_URL}/api/posts${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
 
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paginated   = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+const apiGetPosts = (page = 1, search = '', status = '') =>
+  apiFetch(`/admin?page=${page}&pageSize=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}${status && status !== 'all' ? `&status=${status}` : ''}`);
 
-  const toggleSel = (id) =>
-    setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+const apiCreate = (data) =>
+  apiFetch('', { method: 'POST', body: JSON.stringify(data) });
 
-  const toggleAll = () => {
-    const ids = paginated.map(p => p.id);
-    const allChecked = ids.every(id => selected.includes(id));
-    setSelected(allChecked
-      ? selected.filter(id => !ids.includes(id))
-      : [...new Set([...selected, ...ids])]
-    );
+const apiUpdate = (id, data) =>
+  apiFetch(`/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+const apiDelete = (id) =>
+  apiFetch(`/${id}`, { method: 'DELETE' });
+
+/* ════════════════════════════════
+   Toast
+════════════════════════════════ */
+function Toast({ toasts }) {
+  return (
+    <div className={styles.toastContainer}>
+      {toasts.map(t => (
+        <div key={t.id} className={`${styles.toast} ${styles[t.type]}`}>
+          <span className={styles.toastIcon}>{t.type === 'success' ? '✓' : '✕'}</span>
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ════════════════════════════════
+   Modal
+════════════════════════════════ */
+function PostModal({ mode, initial, onClose, onSave }) {
+  const isEdit = mode === 'edit';
+  const [form, setForm]       = useState(initial ?? EMPTY_FORM);
+  const [errors, setErrors]   = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }));
+    setErrors(e => ({ ...e, [k]: '' }));
   };
 
-  const setCat = (c) => { setActiveCat(c); setPage(1); };
-  const setSt  = (s) => { setActiveSt(s);  setPage(1); };
+  const validate = () => {
+    const e = {};
+    if (!form.title.trim())   e.title   = 'Vui lòng nhập tiêu đề (ít nhất 5 ký tự)';
+    if (form.title.trim().length < 5) e.title = 'Tiêu đề ít nhất 5 ký tự';
+    if (!form.excerpt.trim() || form.excerpt.trim().length < 10) e.excerpt = 'Tóm tắt ít nhất 10 ký tự';
+    if (!form.content.trim() || form.content.trim().length < 10) e.content = 'Nội dung ít nhất 10 ký tự';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
-  const from = Math.min((currentPage - 1) * PAGE_SIZE + 1, filtered.length);
-  const to   = Math.min(currentPage * PAGE_SIZE, filtered.length);
+  const handleSave = async (statusOverride) => {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      await onSave({ ...form, status: statusOverride ?? form.status }, isEdit ? initial.id : null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="posts-page">
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
 
-      {/* ── Header ── */}
-      <div className="posts-topbar">
-        <div>
-          <h1 className="posts-heading">Quản lý bài viết</h1>
-          <p className="posts-sub">
-            {POSTS.length} bài viết · {POSTS.filter(p => p.status === 'published').length} đã đăng
-          </p>
-        </div>
-        <button className="posts-add-btn" onClick={() => alert('Tạo bài viết mới')}>
-          + Thêm bài viết
-        </button>
-      </div>
-
-      {/* ── Toolbar ── */}
-      <div className="posts-toolbar">
-        <div className="search-wrap">
-          <span className="search-icon">⌕</span>
-          <input
-            className="search-input"
-            placeholder="Tìm bài viết, tác giả…"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-          />
-        </div>
-
-        <div className="toolbar-divider" />
-
-        <div className="chips">
-          {CATS.map(c => (
-            <button
-              key={c}
-              className={`chip${activeCat === c ? ' active-all' : ''}`}
-              onClick={() => setCat(c)}
-            >{c}</button>
-          ))}
-        </div>
-
-        <div className="toolbar-divider" />
-
-        <div className="chips">
-          {STATUSES.map(s => (
-            <button
-              key={s.key}
-              className={`chip${activeSt === s.key ? ` active-${s.key}` : ''}`}
-              onClick={() => setSt(s.key)}
-            >{s.label}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Bulk bar ── */}
-      {selected.length > 0 && (
-        <div className="bulk-bar">
-          <span className="bulk-info">Đã chọn {selected.length} bài viết</span>
-          <div className="chips">
-            <button className="bulk-btn" onClick={() => alert('Xuất bản')}>Xuất bản</button>
-            <button className="bulk-btn" onClick={() => alert('Bản nháp')}>Bản nháp</button>
-            <button className="bulk-btn danger" onClick={() => setSelected([])}>Xoá</button>
+        {/* Header */}
+        <div className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>
+              {isEdit ? 'Chỉnh sửa bài viết' : 'Thêm bài viết mới'}
+            </h2>
+            <p className={styles.modalSub}>
+              {isEdit ? `Đang sửa: ${initial.title}` : 'Điền thông tin và lưu bài viết'}
+            </p>
           </div>
-        </div>
-      )}
-
-      {/* ── Table ── */}
-      <div className="table-card">
-
-        {/* Head */}
-        <div className="table-head">
-          <input
-            type="checkbox"
-            className="row-cb"
-            checked={paginated.length > 0 && paginated.every(p => selected.includes(p.id))}
-            onChange={toggleAll}
-          />
-          {['Bài viết', 'Danh mục', 'Ngày đăng', 'Lượt xem', 'Bình luận', 'Trạng thái', 'Thao tác'].map(h => (
-            <div key={h} className="th">{h}</div>
-          ))}
+          <button className={styles.modalClose} onClick={onClose} disabled={loading}>✕</button>
         </div>
 
         {/* Body */}
-        {paginated.length === 0 ? (
-          <div className="table-empty">Không tìm thấy bài viết phù hợp.</div>
-        ) : paginated.map((post, i) => {
-          const sc = STATUS_CONFIG[post.status];
-          return (
-            <div key={post.id} className="table-row" style={{ animationDelay: `${i * 30}ms` }}>
-              <input
-                type="checkbox"
-                className="row-cb"
-                checked={selected.includes(post.id)}
-                onChange={() => toggleSel(post.id)}
-                onClick={e => e.stopPropagation()}
-              />
-              <div className="post-info">
-                <div className="post-thumb">{post.t}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="post-title" title={post.title}>{post.title}</div>
-                  <div className="post-author">{post.author}</div>
-                </div>
-              </div>
-              <div>
-                <span className="cat-pill">{post.category}</span>
-              </div>
-              <div className="date-cell">{formatDate(post.date)}</div>
-              <div className="stat-cell">{post.views.toLocaleString('vi-VN')}</div>
-              <div className="stat-cell">{post.comments}</div>
-              <div>
-                <span className="status-pill" style={{ background: sc.bg, color: sc.color }}>
-                  <span className="status-dot" style={{ background: sc.dot }} />
-                  {sc.label}
-                </span>
-              </div>
-              <div className="row-actions">
-                <button className="action-btn" onClick={e => { e.stopPropagation(); alert(`Sửa: ${post.title}`); }}>Sửa</button>
-                <button className="action-btn del" onClick={e => { e.stopPropagation(); alert(`Xoá: ${post.title}`); }}>Xoá</button>
-              </div>
+        <div className={styles.modalBody}>
+
+          {/* Icon picker */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Biểu tượng</label>
+            <div className={styles.iconPicker}>
+              {ICONS.map(ic => (
+                <button
+                  key={ic}
+                  type="button"
+                  className={`${styles.iconBtn} ${form.icon === ic ? styles.iconBtnActive : ''}`}
+                  onClick={() => set('icon', ic)}
+                >{ic}</button>
+              ))}
             </div>
-          );
-        })}
+          </div>
+
+          {/* Title */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Tiêu đề <span className={styles.required}>*</span></label>
+            <input
+              className={`${styles.fieldInput} ${errors.title ? styles.fieldError : ''}`}
+              placeholder="Nhập tiêu đề bài viết… (tối thiểu 5 ký tự)"
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+            />
+            {errors.title && <span className={styles.errorMsg}>{errors.title}</span>}
+          </div>
+
+          {/* Excerpt */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Tóm tắt <span className={styles.required}>*</span></label>
+            <textarea
+              className={`${styles.fieldTextarea} ${errors.excerpt ? styles.fieldError : ''}`}
+              placeholder="Mô tả ngắn về bài viết… (tối thiểu 10 ký tự)"
+              rows={2}
+              value={form.excerpt}
+              onChange={e => set('excerpt', e.target.value)}
+            />
+            {errors.excerpt && <span className={styles.errorMsg}>{errors.excerpt}</span>}
+          </div>
+
+          {/* Thumbnail */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>URL ảnh thumbnail</label>
+            <input
+              className={styles.fieldInput}
+              placeholder="https://example.com/image.jpg (không bắt buộc)"
+              value={form.thumbnailUrl}
+              onChange={e => set('thumbnailUrl', e.target.value)}
+            />
+          </div>
+
+          {/* Status (chỉ hiện khi edit) */}
+          {isEdit && (
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Trạng thái</label>
+              <select
+                className={styles.fieldSelect}
+                value={form.status}
+                onChange={e => set('status', e.target.value)}
+              >
+                <option value="Draft">Bản nháp</option>
+                <option value="Published">Xuất bản</option>
+                <option value="Review">Chờ duyệt</option>
+              </select>
+            </div>
+          )}
+
+          {/* Content */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Nội dung <span className={styles.required}>*</span></label>
+            <textarea
+              className={`${styles.fieldTextarea} ${errors.content ? styles.fieldError : ''}`}
+              placeholder="Nhập nội dung bài viết… (tối thiểu 10 ký tự)"
+              rows={6}
+              value={form.content}
+              onChange={e => set('content', e.target.value)}
+            />
+            {errors.content && <span className={styles.errorMsg}>{errors.content}</span>}
+          </div>
+
+        </div>
 
         {/* Footer */}
-        <div className="table-foot">
-          <span className="foot-info">
-            {filtered.length === 0 ? 'Không có bài viết' : `Hiển thị ${from}–${to} / ${filtered.length} bài`}
-          </span>
-          <div className="pager">
-            <button className="page-btn" disabled={currentPage === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+        <div className={styles.modalFooter}>
+          <button className={styles.btnCancel} onClick={onClose} disabled={loading}>Huỷ</button>
+          <div className={styles.modalActions}>
+            {!isEdit && (
               <button
-                key={n}
-                className={`page-btn${n === currentPage ? ' active' : ''}`}
-                onClick={() => setPage(n)}
-              >{n}</button>
-            ))}
-            <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+                className={styles.btnDraft}
+                onClick={() => handleSave('Draft')}
+                disabled={loading}
+              >
+                {loading ? <span className={styles.spinner} /> : null}
+                Lưu nháp
+              </button>
+            )}
+            <button
+              className={styles.btnPublish}
+              onClick={() => handleSave(isEdit ? form.status : 'Published')}
+              disabled={loading}
+            >
+              {loading ? <span className={styles.spinner} /> : '✦ '}
+              {isEdit ? 'Lưu thay đổi' : 'Xuất bản'}
+            </button>
           </div>
         </div>
+
       </div>
     </div>
+  );
+}
+
+/* ════════════════════════════════
+   Main page
+════════════════════════════════ */
+export default function PostsPage() {
+  const [posts, setPosts]         = useState([]);
+  const [totalCount, setTotal]    = useState(0);
+  const [totalPages, setTotalPg]  = useState(1);
+  const [loading, setLoading]     = useState(true);
+
+  const [search, setSearch]       = useState('');
+  const [activeSt, setActiveSt]   = useState('all');
+  const [page, setPage]           = useState(1);
+
+  const [selected, setSelected]   = useState([]);
+  const [modal, setModal]         = useState(null);
+  const [toasts, setToasts]       = useState([]);
+
+  /* Toast */
+  const addToast = (msg, type = 'success') => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
+  };
+
+  /* Fetch */
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await apiGetPosts(page, search, activeSt);
+      setPosts(data.items ?? []);
+      setTotal(data.totalCount ?? 0);
+      setTotalPg(data.totalPages ?? 1);
+    } catch (err) {
+      addToast('Không tải được danh sách bài: ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeSt]);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  /* Search debounce */
+  const handleSearch = (val) => {
+    setSearch(val);
+    setPage(1);
+  };
+
+  /* Selection */
+  const toggleSel = (id) =>
+    setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  const toggleAll = () => {
+    const ids = posts.map(p => p.id);
+    const allChecked = ids.every(id => selected.includes(id));
+    setSelected(allChecked ? selected.filter(id => !ids.includes(id)) : [...new Set([...selected, ...ids])]);
+  };
+
+  /* Save (tạo hoặc sửa) */
+  const handleSave = async (formData, editId) => {
+    // Map form → API payload
+    const payload = {
+      title:        formData.title,
+      excerpt:      formData.excerpt,
+      content:      formData.content,
+      thumbnailUrl: formData.thumbnailUrl || null,
+      coverImageUrl: null,
+      status:       STATUS_API[formData.status] ?? 0,
+      ...(editId ? {} : { authorId: AUTHOR_ID }),
+    };
+
+    try {
+      if (editId) {
+        await apiUpdate(editId, payload);
+        addToast('Cập nhật bài viết thành công');
+      } else {
+        await apiCreate(payload);
+        addToast('Đăng bài viết thành công');
+      }
+      setModal(null);
+      setPage(1);
+      fetchPosts();
+    } catch (err) {
+      addToast('Lỗi: ' + err.message, 'error');
+    }
+  };
+
+  /* Delete */
+  const handleDelete = async (post) => {
+    if (!confirm(`Xoá bài "${post.title}"?`)) return;
+    try {
+      await apiDelete(post.id);
+      setSelected(s => s.filter(id => id !== post.id));
+      addToast('Đã xoá bài viết');
+      fetchPosts();
+    } catch (err) {
+      addToast('Lỗi xoá: ' + err.message, 'error');
+    }
+  };
+
+  /* Open edit modal — map API response → form shape */
+  const openEdit = (post) => {
+    setModal({
+      mode: 'edit',
+      post: {
+        id:           post.id,
+        icon:         '✦',
+        title:        post.title,
+        excerpt:      post.excerpt,
+        content:      post.content,
+        thumbnailUrl: post.thumbnailUrl ?? '',
+        status:       post.status, // string từ API: "Draft" | "Published" | "Review"
+      },
+    });
+  };
+
+  const chipClass = (key) => {
+    const m = { all: 'activeAll', Published: 'activePublished', Draft: 'activeDraft', Review: 'activeReview' };
+    return styles[m[key]] ?? '';
+  };
+
+  const publishedCount = posts.filter(p => p.status === 'Published').length;
+
+  return (
+    <>
+      <Toast toasts={toasts} />
+
+      {modal && (
+        <PostModal
+          mode={modal.mode}
+          initial={modal.mode === 'edit' ? modal.post : undefined}
+          onClose={() => setModal(null)}
+          onSave={handleSave}
+        />
+      )}
+
+      <div className={styles.postsPage}>
+
+        {/* Header */}
+        <div className={styles.postsTopbar}>
+          <div>
+            <h1 className={styles.postsHeading}>Quản lý bài viết</h1>
+            <p className={styles.postsSub}>
+              {totalCount} bài viết · {publishedCount} đã đăng (trang này)
+            </p>
+          </div>
+          <button className={styles.postsAddBtn} onClick={() => setModal({ mode: 'create' })}>
+            + Thêm bài viết
+          </button>
+        </div>
+
+        {/* Toolbar */}
+        <div className={styles.postsToolbar}>
+          <div className={styles.searchWrap}>
+            <span className={styles.searchIcon}>⌕</span>
+            <input
+              className={styles.searchInput}
+              placeholder="Tìm bài viết…"
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+            />
+          </div>
+          <div className={styles.toolbarDivider} />
+          <div className={styles.chips}>
+            {STATUSES_FILTER.map(s => (
+              <button
+                key={s.key}
+                className={`${styles.chip} ${activeSt === s.key ? chipClass(s.key) : ''}`}
+                onClick={() => { setActiveSt(s.key); setPage(1); }}
+              >{s.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bulk bar */}
+        {selected.length > 0 && (
+          <div className={styles.bulkBar}>
+            <span className={styles.bulkInfo}>Đã chọn {selected.length} bài viết</span>
+            <button
+              className={`${styles.bulkBtn} ${styles.danger}`}
+              onClick={() => setSelected([])}
+            >Bỏ chọn</button>
+          </div>
+        )}
+
+        {/* Table */}
+        <div className={styles.tableCard}>
+          <div className={styles.tableHead}>
+            <input
+              type="checkbox"
+              className={styles.rowCb}
+              checked={posts.length > 0 && posts.every(p => selected.includes(p.id))}
+              onChange={toggleAll}
+            />
+            {['Bài viết', 'Ngày đăng', 'Bình luận', 'Trạng thái', 'Thao tác'].map(h => (
+              <div key={h} className={styles.th}>{h}</div>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className={styles.tableEmpty}>Đang tải…</div>
+          ) : posts.length === 0 ? (
+            <div className={styles.tableEmpty}>Không tìm thấy bài viết phù hợp.</div>
+          ) : posts.map((post, i) => {
+            const sc = STATUS_CONFIG[post.status] ?? STATUS_CONFIG['Draft'];
+            return (
+              <div key={post.id} className={styles.tableRow} style={{ animationDelay: `${i * 30}ms` }}>
+                <input
+                  type="checkbox"
+                  className={styles.rowCb}
+                  checked={selected.includes(post.id)}
+                  onChange={() => toggleSel(post.id)}
+                  onClick={e => e.stopPropagation()}
+                />
+                <div className={styles.postInfo}>
+                  <div className={styles.postThumb}>✦</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className={styles.postTitle} title={post.title}>{post.title}</div>
+                    <div className={styles.postAuthor}>{post.authorName}</div>
+                  </div>
+                </div>
+                <div className={styles.dateCell}>{fmtDate(post.createdAt)}</div>
+                <div className={styles.statCell}>{post.commentCount}</div>
+                <div>
+                  <span className={styles.statusPill} style={{ background: sc.bg, color: sc.color }}>
+                    <span className={styles.statusDot} style={{ background: sc.dot }} />
+                    {sc.label}
+                  </span>
+                </div>
+                <div className={styles.rowActions}>
+                  <button
+                    className={styles.actionBtn}
+                    onClick={e => { e.stopPropagation(); openEdit(post); }}
+                  >Sửa</button>
+                  <button
+                    className={`${styles.actionBtn} ${styles.del}`}
+                    onClick={e => { e.stopPropagation(); handleDelete(post); }}
+                  >Xoá</button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Footer / Pagination */}
+          <div className={styles.tableFoot}>
+            <span className={styles.footInfo}>
+              {totalCount === 0 ? 'Không có bài viết' : `Tổng ${totalCount} bài`}
+            </span>
+            <div className={styles.pager}>
+              <button className={styles.pageBtn} disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  className={`${styles.pageBtn} ${n === page ? styles.active : ''}`}
+                  onClick={() => setPage(n)}
+                >{n}</button>
+              ))}
+              <button className={styles.pageBtn} disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </>
   );
 }

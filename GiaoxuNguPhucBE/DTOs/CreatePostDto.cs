@@ -11,6 +11,16 @@ namespace GiaoxuNguPhucBE.DTOs
         string? ThumbnailUrl,
         string? CoverImageUrl,
         int AuthorId,
-        PostStatus Status = PostStatus.Draft
+        PostCategory Category = PostCategory.TinTuc,
+        string? Tags = null,
+        PostStatus Status = PostStatus.Draft,
+        bool IsFeatured = false,
+        bool IsPinned = false,
+        bool AllowComments = true,
+        DateTime? EventDate = null,
+        string? MetaTitle = null,
+        string? MetaDescription = null,
+        /// <summary>Tuỳ chọn: tự đặt slug riêng, nếu để trống sẽ tự sinh từ Title</summary>
+        string? Slug = null
     );
 }

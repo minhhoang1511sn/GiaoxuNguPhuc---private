@@ -8,6 +8,10 @@ namespace GiaoxuNguPhucBE.Pagination
         public int PageSize { get; init; } = 10;
         public string? Search { get; init; }
         public PostStatus? Status { get; init; }
+        public PostCategory? Category { get; init; }
+        public string? Tag { get; init; }
+        public bool? IsFeatured { get; init; }
+        public bool? IsPinned { get; init; }
         public int? AuthorId { get; init; }
         public string SortBy { get; init; } = "createdAt";
         public string SortOrder { get; init; } = "desc";
