@@ -1,13 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './post.module.css';
+import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
 
 /* ── Config ── */
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 const AUTHOR_ID = 1; // TODO: lấy từ auth context sau khi làm login
 
-const ICONS = ['✦', '◈', '▪', '◆', '◇', '◉', '◎', '◐', '◑', '◒'];
+const ICONS = [
+  { value: '✦', label: '✦  Ngôi sao' },
+  { value: '◈', label: '◈  Kim cương lưới' },
+  { value: '▪', label: '▪  Ô vuông nhỏ' },
+  { value: '◆', label: '◆  Kim cương' },
+  { value: '◇', label: '◇  Kim cương viền' },
+  { value: '◉', label: '◉  Tròn đặc tâm' },
+  { value: '◎', label: '◎  Tròn viền tâm' },
+  { value: '◐', label: '◐  Nửa trái' },
+  { value: '◑', label: '◑  Nửa phải' },
+  { value: '◒', label: '◒  Nửa dưới' },
+];
 
 const STATUS_CONFIG = {
   Published: { label: 'Đã đăng',   color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
@@ -21,6 +33,40 @@ const STATUS_API = {
   Review:    2,
 };
 
+// Khớp đúng thứ tự/giá trị số với enum PostCategory ở backend (Models/PostCategory.cs).
+// Không đổi số của các mục đã có — chỉ thêm mới ở cuối, để không làm lệch dữ liệu cũ.
+const CATEGORY_API = {
+  TinTuc: 0,
+  ThongBao: 1,
+  GiaoLy: 2,
+  SuyNiem: 3,
+  HoatDongDoanThe: 4,
+  LichPhungVu: 5,
+  CaoPho: 6,
+  HinhAnhVideo: 7,
+  Khac: 8,
+  GioiTre: 9,
+};
+
+const CATEGORY_LABELS = {
+  TinTuc: 'Tin Tức',
+  ThongBao: 'Thông Báo',
+  GiaoLy: 'Giáo Lý',
+  SuyNiem: 'Suy Niệm',
+  HoatDongDoanThe: 'Hoạt Động Đoàn Thể',
+  LichPhungVu: 'Lịch Phụng Vụ',
+  CaoPho: 'Cáo Phó',
+  HinhAnhVideo: 'Hình Ảnh - Video',
+  Khac: 'Khác',
+  GioiTre: 'Giới Trẻ',
+};
+
+// Thứ tự hiển thị trong dropdown (theo mức độ dùng phổ biến ở giáo xứ)
+const CATEGORIES_LIST = [
+  'TinTuc', 'ThongBao', 'GioiTre', 'GiaoLy', 'SuyNiem',
+  'LichPhungVu', 'HoatDongDoanThe', 'CaoPho', 'HinhAnhVideo', 'Khac',
+].map(key => ({ key, label: CATEGORY_LABELS[key] }));
+
 const STATUSES_FILTER = [
   { key: 'all',       label: 'Tất cả' },
   { key: 'Published', label: 'Đã đăng' },
@@ -29,7 +75,7 @@ const STATUSES_FILTER = [
 ];
 
 const PAGE_SIZE = 8;
-const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', status: 'Draft' };
+const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', category: 'TinTuc', status: 'Draft' };
 
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -53,6 +99,8 @@ async function apiFetch(path, opts = {}) {
 
 const apiGetPosts = (page = 1, search = '', status = '') =>
   apiFetch(`/admin?page=${page}&pageSize=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}${status && status !== 'all' ? `&status=${status}` : ''}`);
+
+const apiGetPostDetail = (id) => apiFetch(`/admin/${id}`);
 
 const apiCreate = (data) =>
   apiFetch('', { method: 'POST', body: JSON.stringify(data) });
@@ -87,11 +135,43 @@ function PostModal({ mode, initial, onClose, onSave }) {
   const [form, setForm]       = useState(initial ?? EMPTY_FORM);
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const set = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: '' }));
   };
+
+  const handlePickFile = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // cho phép chọn lại cùng file lần sau
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrors(er => ({ ...er, thumbnailUrl: 'Vui lòng chọn một file ảnh.' }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(er => ({ ...er, thumbnailUrl: 'Kích thước ảnh tối đa là 5MB.' }));
+      return;
+    }
+
+    setUploading(true);
+    setErrors(er => ({ ...er, thumbnailUrl: '' }));
+    try {
+      const url = await uploadImage(file, 'posts');
+      set('thumbnailUrl', url);
+    } catch (err) {
+      setErrors(er => ({ ...er, thumbnailUrl: 'Tải ảnh lên thất bại: ' + err.message }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => set('thumbnailUrl', '');
 
   const validate = () => {
     const e = {};
@@ -104,6 +184,7 @@ function PostModal({ mode, initial, onClose, onSave }) {
   };
 
   const handleSave = async (statusOverride) => {
+    if (uploading) return;
     if (!validate()) return;
     setLoading(true);
     try {
@@ -136,16 +217,29 @@ function PostModal({ mode, initial, onClose, onSave }) {
           {/* Icon picker */}
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>Biểu tượng</label>
-            <div className={styles.iconPicker}>
+            <select
+              className={styles.fieldSelect}
+              value={form.icon}
+              onChange={e => set('icon', e.target.value)}
+            >
               {ICONS.map(ic => (
-                <button
-                  key={ic}
-                  type="button"
-                  className={`${styles.iconBtn} ${form.icon === ic ? styles.iconBtnActive : ''}`}
-                  onClick={() => set('icon', ic)}
-                >{ic}</button>
+                <option key={ic.value} value={ic.value}>{ic.label}</option>
               ))}
-            </div>
+            </select>
+          </div>
+
+          {/* Category */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Chuyên mục <span className={styles.required}>*</span></label>
+            <select
+              className={styles.fieldSelect}
+              value={form.category}
+              onChange={e => set('category', e.target.value)}
+            >
+              {CATEGORIES_LIST.map(cat => (
+                <option key={cat.key} value={cat.key}>{cat.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Title */}
@@ -175,13 +269,59 @@ function PostModal({ mode, initial, onClose, onSave }) {
 
           {/* Thumbnail */}
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>URL ảnh thumbnail</label>
+            <label className={styles.fieldLabel}>Ảnh thumbnail</label>
             <input
-              className={styles.fieldInput}
-              placeholder="https://example.com/image.jpg (không bắt buộc)"
-              value={form.thumbnailUrl}
-              onChange={e => set('thumbnailUrl', e.target.value)}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
             />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div
+                style={{
+                  width: 80, height: 60, borderRadius: 8, overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.06)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {form.thumbnailUrl ? (
+                  <img
+                    src={resolveImageUrl(form.thumbnailUrl)}
+                    alt="Xem trước"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 20, opacity: 0.4 }}>🖼</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  type="button"
+                  className={styles.btnCancel}
+                  onClick={handlePickFile}
+                  disabled={uploading}
+                  style={{ padding: '8px 14px' }}
+                >
+                  {uploading ? 'Đang tải lên…' : (form.thumbnailUrl ? 'Đổi ảnh khác' : '📁 Chọn ảnh từ máy')}
+                </button>
+                {form.thumbnailUrl && !uploading && (
+                  <button
+                    type="button"
+                    className={styles.btnCancel}
+                    onClick={handleRemoveImage}
+                    style={{ padding: '8px 14px', color: '#f87171' }}
+                  >
+                    Xoá ảnh
+                  </button>
+                )}
+              </div>
+            </div>
+            <span className={styles.errorMsg} style={{ color: '#94a3b8' }}>
+              Hỗ trợ JPG, PNG, WEBP, GIF — tối đa 5MB.
+            </span>
+            {errors.thumbnailUrl && <span className={styles.errorMsg}>{errors.thumbnailUrl}</span>}
           </div>
 
           {/* Status (chỉ hiện khi edit) */}
@@ -310,6 +450,7 @@ export default function PostsPage() {
       content:      formData.content,
       thumbnailUrl: formData.thumbnailUrl || null,
       coverImageUrl: null,
+      category:     CATEGORY_API[formData.category] ?? 0,
       status:       STATUS_API[formData.status] ?? 0,
       ...(editId ? {} : { authorId: AUTHOR_ID }),
     };
@@ -343,20 +484,26 @@ export default function PostsPage() {
     }
   };
 
-  /* Open edit modal — map API response → form shape */
-  const openEdit = (post) => {
-    setModal({
-      mode: 'edit',
-      post: {
-        id:           post.id,
-        icon:         '✦',
-        title:        post.title,
-        excerpt:      post.excerpt,
-        content:      post.content,
-        thumbnailUrl: post.thumbnailUrl ?? '',
-        status:       post.status, // string từ API: "Draft" | "Published" | "Review"
-      },
-    });
+  /* Open edit modal — gọi API lấy chi tiết đầy đủ (list row không có content) */
+  const openEdit = async (post) => {
+    try {
+      const detail = await apiGetPostDetail(post.id);
+      setModal({
+        mode: 'edit',
+        post: {
+          id:           detail.id,
+          icon:         '✦',
+          title:        detail.title,
+          excerpt:      detail.excerpt,
+          content:      detail.content,
+          thumbnailUrl: detail.thumbnailUrl ?? '',
+          category:     CATEGORY_LABELS[detail.category] ? detail.category : 'TinTuc', // string từ API: "TinTuc" | "ThongBao" | ...
+          status:       detail.status, // string từ API: "Draft" | "Published" | "Review"
+        },
+      });
+    } catch (err) {
+      addToast('Không tải được nội dung bài viết: ' + err.message, 'error');
+    }
   };
 
   const chipClass = (key) => {

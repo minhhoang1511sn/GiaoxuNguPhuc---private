@@ -344,21 +344,6 @@
 .fieldError { border-color: rgba(239,68,68,0.5) !important; }
 .errorMsg { font-size: 0.7rem; color: #f87171; }
 
-.iconPicker { display: flex; gap: 6px; flex-wrap: wrap; }
-.iconBtn {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  border: 1px solid #1e2540;
-  background: #0f1220;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.12s;
-}
-.iconBtn:hover { border-color: #334155; color: #94a3b8; }
-.iconBtnActive { border-color: #6ee7b7; background: rgba(110,231,183,0.1); color: #6ee7b7; }
-
 .modalFooter {
   display: flex;
   align-items: center;

@@ -1,83 +1,154 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import "./News.css";
+import { resolveImageUrl } from "@/app/lib/uploadImage";
 
-const articles = [
-  {
-    id: 1,
-    category: "Phụng Vụ",
-    categoryColor: "blue",
-    date: "20 Tháng 3, 2024",
-    title: "Lịch Phụng Vụ Tuần Thánh 2024",
-    excerpt:
-      "Chi tiết về các thánh lễ và nghi thức trong Tuần Thánh sắp tới tại giáo xứ. Kính mời cộng đoàn theo dõi để hiệp thông sốt sắng trong những ngày trọng đại này.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBr2fJVypvXflcX62Say_pylRHl8hwk3pyF3uOcS1UW_au5ATu1keOpNbtb2deUp4sr9Fu6TfKC5K7W2YFYjeuOs_p1JJkU-VgiePExNhYZ5GERFqV3y7rI_MS2SJnfxvHTdpXL2aVi-kUMjl4ES3jrhFKhHH7QGwpLd-s-cExQcpKdOiUJt_1dG6l7WCp8HtpA9FKlsFyQaQYpSRgYNCtWe1vLHHKbegI3UrMEBFALJrjQOsOU7zBjl63qUzBFsPtAdVLmFtMYpmI",
-  },
-  {
-    id: 2,
-    category: "Bác Ái",
-    categoryColor: "green",
-    date: "15 Tháng 5, 2024",
-    title: "Tổng kết hoạt động từ thiện tháng 5",
-    excerpt:
-      "Cập nhật kết quả quyên góp và hình ảnh chuyến đi thăm trại trẻ mồ côi Mái Ấm Tình Thương. Xin chân thành cảm ơn sự quảng đại của quý ân nhân.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBRlpQqvHyk0NPkKY1xwUb9v3JBvoOyYulQME72QDaD5bfvFLRQ8WgZsXK-xBLeHcL9dnzce1KYB-QcAetwOmy2Blh5WFzdWzRfEaBXvqEj5d7Ns7xA2FBK3SjnT1M1tCn6GAsfRchizT7ZQ88nWDZZOWZJ90B5v4QVUbJk3Qn4SQPlQk6GLFPms3gnsQhDzm-WsarMmAELFT5MG6KmyAuAXLeZYE985bKqAqhKG5CoO9O6DYrW9QXsGmfCy5usXcQD7GfJ8CL6xKM",
-  },
-  {
-    id: 3,
-    category: "Giáo Lý",
-    categoryColor: "purple",
-    date: "01 Tháng 6, 2024",
-    title: "Thông báo lớp Giáo lý Hôn nhân Khóa II/2024",
-    excerpt:
-      "Giáo xứ thông báo khai giảng lớp Giáo lý Hôn nhân Khóa II dành cho các bạn trẻ chuẩn bị bước vào đời sống hôn nhân. Đăng ký tại văn phòng giáo xứ.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDk-aPMo9taRPpe4B5Dq3XFkbAlPR7YxHCREY2gmTWDK3_hurGRSv8fbHa3g2AawK5RhRMxb3Du02Z23SRigJ9HHaV9qsAyBCS-DiXPsQgckoILACKgalq2B0RGE-PY7UlAcShiA4axynoMQm-aOnV4dABqVWxhxLn9Rls4uttBp1xcb8OaP1-dn3ui1hnRAET7RVyBo1sH6daqw5UbmrmPeRu9K8Xc0DFXV_wYHSA7itNk1stK9jjGlDIO1pf8bVXWlCFbIJrSszs",
-  },
-  {
-    id: 4,
-    category: "Giới Trẻ",
-    categoryColor: "orange",
-    date: "28 Tháng 5, 2024",
-    title: "Đại hội Giới trẻ Giáo hạt: Hành trang Đức Tin",
-    excerpt:
-      "Mời gọi các bạn trẻ tham gia ngày hội lớn của giáo hạt với chủ đề \"Hành trang Đức Tin\" vào Chúa Nhật tới. Nhiều hoạt động giao lưu và chia sẻ ý nghĩa.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCIa2WCQC95Tae8_A0kEy2pJCAFSZF4GCdslMajUJ2h_g61hqAjEKSkEvqyq1AfcRVQlc6DhcDMYcBUrCDOCw5vAmr5mhPmz6xiHu7avPv97-y3y0fs1fKVbiiy1dTkTnk2QXJV1nZRZfXf6MZ6IDg3v-tXeaj-HYGaZatr4dwC7tkb3JKq64jVf8Ici2WV4mXxuuKvVq0Ozt0v0r7ot450lQkqLUv4EQjGeWuAJvDR5PSALubrHYDCdMcw9gEMI6vyndDCDN7JCos",
-  },
-];
+/* ════════════════════════════════
+   Config
+════════════════════════════════ */
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
+const PAGE_SIZE = 6;
 
-const featuredNews = [
-  {
-    id: 1,
-    tag: "Mùa Chay",
-    title: "Thư Mục Vụ Mùa Chay 2024 của Đức Giám Mục",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDkOoovdaYiSyl6RsS-0rOqLxUsmynDKTqU90l2tNKZqqkQxwknG4AR9yJN5bsdaLoNRPiWevdarogvoOL-3z5_-5ESUAXBPRrqyLPbWfmhkGvEEjiL2fhU42KmGX9rdhgvbFGv9sRsZ8C9nPBIDcBCtu-TEl7S0MC9q-WY5QDhijMhXpA5qt-MJy1HasrZD66EfcMMpRlwL0i26sYrZXMUUbpXMwX4NA-mgNnQvuUBWltWZwRg2tMtyM6xmXaxg1HnuWxUvudAERE",
-  },
-  {
-    id: 2,
-    tag: "Đức Tin",
-    title: "Chuỗi Mân Côi - Sức mạnh thiêng liêng",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA12W_HAqkc5tgsEYkDkzgGosWzS0-CJNKGr1qocyqnQ8UNfQRUJkvCqVkjRvFhKzECK-mF8ZGsTPZtgtr9ur8NbSLiOMEYTtyEJJQSOg8PQK7-d4BYzBoOnfQfh7xUOseuJXjF1HBj5TnoiB-TGunMlmImNVlrf5MDAP9NAIZdkSVunMZvtdrQE1UWbUqqQVQTjw12RN5uTjdz0uk6RYEoj9If9qdW6Vrk8zXHLyNGaVgWa9QvTilU1THxmLI4hDHKxxCAPiZ6r_A",
-  },
-  {
-    id: 3,
-    tag: "Xây Dựng",
-    title: "Tiến độ trùng tu tháp chuông nhà thờ",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDbl5JDH2b68HOCavURpT-vXB1Be_1_6jda-SP8sEd88GL_SJq2ZBN6riqNraLjojc0XPMPEl3L7Pt5GjwSznmI3hlxBQe4uoiK5JG1IOufQWhl-hpmCQjbZGw14L2Gp7KfO_PrmY2PiOJ_ohdVOJBmze-LlTofTgi4VXCyAi3I1L8Yd7VkFf7qpxrQGVYTRC_9qGKHwwQLSN0W2JS6juszSTvG9BAtlEutnmsnQNTNZ5fHjECHMebPHkVNK0a1eNQLqfgdmP8_TU0",
-  },
-];
+// Map enum Category (string trả về từ backend) -> nhãn + màu badge hiển thị
+// Thứ tự & nhãn tham khảo cấu trúc chuyên mục phổ biến của các trang giáo xứ/giáo phận.
+const CATEGORY_CONFIG = {
+  TinTuc: { label: "Tin Tức", color: "blue" },
+  ThongBao: { label: "Thông Báo", color: "orange" },
+  GioiTre: { label: "Giới Trẻ", color: "orange" },
+  GiaoLy: { label: "Giáo Lý", color: "purple" },
+  SuyNiem: { label: "Suy Niệm", color: "green" },
+  LichPhungVu: { label: "Lịch Phụng Vụ", color: "purple" },
+  HoatDongDoanThe: { label: "Hoạt Động Đoàn Thể", color: "blue" },
+  CaoPho: { label: "Cáo Phó", color: "orange" },
+  HinhAnhVideo: { label: "Hình Ảnh - Video", color: "green" },
+  Khac: { label: "Khác", color: "blue" },
+};
 
+const CATEGORY_LIST = Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => ({
+  key,
+  label: cfg.label,
+}));
+
+function getCategoryConfig(category) {
+  return CATEGORY_CONFIG[category] ?? { label: category ?? "Khác", color: "blue" };
+}
+
+function fmtDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/* ════════════════════════════════
+   API helpers
+════════════════════════════════ */
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${BASE_URL}/api/posts${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+const apiGetPosts = ({ page = 1, search = "", category = "" }) => {
+  const params = new URLSearchParams({ page, pageSize: PAGE_SIZE });
+  if (search) params.set("search", search);
+  if (category) params.set("category", category);
+  return apiFetch(`?${params.toString()}`);
+};
+
+const apiGetFeatured = (take = 3) => apiFetch(`/featured?take=${take}`);
+
+/* ════════════════════════════════
+   Component
+════════════════════════════════ */
 export default function NewsPage() {
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [posts, setPosts] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [categoryCounts, setCategoryCounts] = useState({});
+  const [featuredPosts, setFeaturedPosts] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadPosts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await apiGetPosts({
+        page: currentPage,
+        search,
+        category: activeCategory,
+      });
+      setPosts(result.items ?? []);
+      setTotalPages(Math.max(1, result.totalPages ?? 1));
+    } catch (err) {
+      console.error(err);
+      setError("Không thể tải tin tức. Vui lòng thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, search, activeCategory]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  // Tin nổi bật cho sidebar - chỉ tải 1 lần
+  useEffect(() => {
+    apiGetFeatured(3)
+      .then((data) => setFeaturedPosts(data ?? []))
+      .catch((err) => console.error("Không tải được tin nổi bật:", err));
+  }, []);
+
+  // Đếm số bài viết theo từng category (gọi nhẹ, page rất nhỏ chỉ để lấy totalCount)
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      CATEGORY_LIST.map((cat) =>
+        apiFetch(`?page=1&pageSize=1&category=${cat.key}`)
+          .then((r) => [cat.key, r.totalCount ?? 0])
+          .catch(() => [cat.key, 0])
+      )
+    ).then((entries) => {
+      if (!cancelled) setCategoryCounts(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    setCurrentPage(1);
+    setSearch(searchInput.trim());
+  }
+
+  function handleCategoryClick(key) {
+    setCurrentPage(1);
+    setActiveCategory((prev) => (prev === key ? "" : key));
+  }
+
+  function handleNewsletterSubmit(e) {
+    e.preventDefault();
+    // TODO: nối API đăng ký nhận tin khi backend có endpoint tương ứng
+    setEmail("");
+  }
 
   return (
     <div className="news-page">
@@ -96,66 +167,97 @@ export default function NewsPage() {
         <div className="news-grid">
           {/* Articles */}
           <div className="news-articlesList">
-            {articles.map((article) => (
-              <article key={article.id} className="news-articleCard">
-                <div
-                  className="news-articleImage"
-                  style={{ backgroundImage: `url(${article.image})` }}
-                />
-                <div className="news-articleBody">
-                  <div className="news-articleMeta">
-                    <span className={`news-badge news-badge-${article.categoryColor}`}>
-                      {article.category}
-                    </span>
-                    <span className="news-articleDate">• {article.date}</span>
-                  </div>
-                  <h3 className="news-articleTitle">{article.title}</h3>
-                  <p className="news-articleExcerpt">{article.excerpt}</p>
-                  <a href="#" className="news-readMore">
-                    Đọc thêm
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
-                    </svg>
-                  </a>
-                </div>
-              </article>
-            ))}
+            {loading && (
+              <p style={{ color: "#617589", padding: "24px 0" }}>Đang tải bài viết...</p>
+            )}
+
+            {!loading && error && (
+              <p style={{ color: "#dc2626", padding: "24px 0" }}>{error}</p>
+            )}
+
+            {!loading && !error && posts.length === 0 && (
+              <p style={{ color: "#617589", padding: "24px 0" }}>
+                Chưa có bài viết nào{search ? ` khớp với "${search}"` : ""}.
+              </p>
+            )}
+
+            {!loading &&
+              !error &&
+              posts.map((post) => {
+                const catCfg = getCategoryConfig(post.category);
+                return (
+                  <article key={post.id} className="news-articleCard">
+                    <Link
+                      href={`/news/${post.slug}`}
+                      className="news-articleImage"
+                      style={{
+                        display: "block",
+                        backgroundImage: post.thumbnailUrl ? `url(${resolveImageUrl(post.thumbnailUrl)})` : undefined,
+                        backgroundColor: post.thumbnailUrl ? undefined : "#e5e7eb",
+                      }}
+                    />
+                    <div className="news-articleBody">
+                      <div className="news-articleMeta">
+                        <span className={`news-badge news-badge-${catCfg.color}`}>
+                          {catCfg.label}
+                        </span>
+                        <span className="news-articleDate">
+                          • {fmtDate(post.publishedAt ?? post.createdAt)}
+                        </span>
+                      </div>
+                      <Link href={`/news/${post.slug}`} style={{ textDecoration: "none" }}>
+                        <h3 className="news-articleTitle">{post.title}</h3>
+                      </Link>
+                      <p className="news-articleExcerpt">{post.excerpt}</p>
+                      <Link href={`/news/${post.slug}`} className="news-readMore">
+                        Đọc thêm
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
 
             {/* Pagination */}
-            <div className="news-pagination">
-              <button
-                className="news-pageBtn"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                </svg>
-              </button>
-              {[1, 2, 3].map((p) => (
+            {!loading && !error && totalPages > 1 && (
+              <div className="news-pagination">
                 <button
-                  key={p}
-                  className={`news-pageBtn ${currentPage === p ? "news-pageBtnActive" : ""}`}
-                  onClick={() => setCurrentPage(p)}
+                  className="news-pageBtn"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
                 >
-                  {p}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                  </svg>
                 </button>
-              ))}
-              <span className="news-pageDots">...</span>
-              <button
-                className="news-pageBtn"
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                </svg>
-              </button>
-            </div>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    className={`news-pageBtn ${currentPage === p ? "news-pageBtnActive" : ""}`}
+                    onClick={() => setCurrentPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  className="news-pageBtn"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
           <aside className="news-sidebar">
             {/* Search */}
-            <div className="news-sideWidget">
+            <form className="news-sideWidget" onSubmit={handleSearchSubmit}>
               <h4 className="news-widgetTitle">Tìm kiếm</h4>
               <div className="news-searchBox">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="news-searchIcon">
@@ -164,29 +266,34 @@ export default function NewsPage() {
                 <input
                   type="text"
                   placeholder="Tìm bài viết..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="news-searchInput"
                 />
               </div>
-            </div>
+            </form>
 
             {/* Categories */}
             <div className="news-sideWidget">
               <h4 className="news-widgetTitle news-widgetTitleBlue">Danh Mục</h4>
               <ul className="news-categoryList">
-                {[
-                  { label: "Thông Báo", count: 12 },
-                  { label: "Phụng Vụ & Suy Niệm", count: 8 },
-                  { label: "Giới Trẻ", count: 5 },
-                  { label: "Caritas (Bác Ái)", count: 3 },
-                ].map((cat, i) => (
-                  <li key={i}>
-                    <a href="#" className="news-categoryItem">
+                {CATEGORY_LIST.map((cat, i) => (
+                  <li key={cat.key}>
+                    <a
+                      href="#"
+                      className="news-categoryItem"
+                      style={activeCategory === cat.key ? { color: "#137fec" } : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleCategoryClick(cat.key);
+                      }}
+                    >
                       <span>{cat.label}</span>
-                      <span className="news-categoryCount">{cat.count}</span>
+                      <span className="news-categoryCount">
+                        {categoryCounts[cat.key] ?? 0}
+                      </span>
                     </a>
-                    {i < 3 && <div className="news-categoryDivider" />}
+                    {i < CATEGORY_LIST.length - 1 && <div className="news-categoryDivider" />}
                   </li>
                 ))}
               </ul>
@@ -196,23 +303,34 @@ export default function NewsPage() {
             <div className="news-sideWidget">
               <h4 className="news-widgetTitle news-widgetTitleGold">Tin Nổi Bật</h4>
               <div className="news-featuredList">
-                {featuredNews.map((item) => (
-                  <a key={item.id} href="#" className="news-featuredItem">
-                    <div
-                      className="news-featuredThumb"
-                      style={{ backgroundImage: `url(${item.image})` }}
-                    />
-                    <div>
-                      <span className="news-featuredTag">{item.tag}</span>
-                      <h5 className="news-featuredTitle">{item.title}</h5>
-                    </div>
-                  </a>
-                ))}
+                {featuredPosts.length === 0 && (
+                  <p style={{ color: "#9ca3af", fontSize: "0.85rem", margin: 0 }}>
+                    Chưa có tin nổi bật.
+                  </p>
+                )}
+                {featuredPosts.map((item) => {
+                  const catCfg = getCategoryConfig(item.category);
+                  return (
+                    <Link key={item.id} href={`/news/${item.slug}`} className="news-featuredItem">
+                      <div
+                        className="news-featuredThumb"
+                        style={{
+                          backgroundImage: item.thumbnailUrl ? `url(${resolveImageUrl(item.thumbnailUrl)})` : undefined,
+                          backgroundColor: item.thumbnailUrl ? undefined : "#e5e7eb",
+                        }}
+                      />
+                      <div>
+                        <span className="news-featuredTag">{catCfg.label}</span>
+                        <h5 className="news-featuredTitle">{item.title}</h5>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
             {/* Newsletter */}
-            <div className="news-newsletter">
+            <form className="news-newsletter" onSubmit={handleNewsletterSubmit}>
               <div className="news-newsletterIcon">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
@@ -229,15 +347,16 @@ export default function NewsPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="news-newsletterInput"
+                  required
                 />
-                <button className="news-newsletterBtn">Đăng ký ngay</button>
+                <button type="submit" className="news-newsletterBtn">
+                  Đăng ký ngay
+                </button>
               </div>
-            </div>
+            </form>
           </aside>
         </div>
       </main>
-
-
     </div>
   );
 }

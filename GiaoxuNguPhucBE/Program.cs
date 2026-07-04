@@ -23,6 +23,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Services
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ICatechismRegistrationService, CatechismRegistrationService>();
+builder.Services.AddScoped<ICatechismClassService, CatechismClassService>();
+builder.Services.AddScoped<IClergyMemberService, ClergyMemberService>();
+builder.Services.AddScoped<IParishHistoryService, ParishHistoryService>();
+builder.Services.AddScoped<IMinistryService, MinistryService>();
 
 // Controllers
 builder.Services.AddControllers();
@@ -81,6 +86,13 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// Đảm bảo thư mục lưu ảnh upload tồn tại trước khi phục vụ static files
+var uploadsRoot = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads");
+Directory.CreateDirectory(uploadsRoot);
+
+// Phục vụ ảnh đã upload (wwwroot/uploads/...) qua đường dẫn tĩnh /uploads/...
+app.UseStaticFiles();
 
 app.UseCors("AllowFrontend");
 

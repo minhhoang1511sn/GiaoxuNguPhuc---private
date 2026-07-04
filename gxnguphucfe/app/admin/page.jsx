@@ -22,7 +22,7 @@ const activities = [
 
 const quickActions = [
   { icon: '✦', label: 'Thêm bài viết', href: '/admin/post/new' },
-  { icon: '◆', label: 'Thêm khoá học', href: '/admin/course/new' },
+  { icon: '◆', label: 'Thêm khoá học', href: '/admin/course' },
   { icon: '◑', label: 'Gửi thông báo', href: '/admin/notification' },
   { icon: '◇', label: 'Thêm giáo sĩ', href: '/admin/clergy/new' },
 ];

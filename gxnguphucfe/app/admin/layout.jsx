@@ -26,6 +26,8 @@ const menuItems = [
     items: [
       { href: '/admin/course', icon: '◆', label: 'Khoá học', badge: '' },
       { href: '/admin/clergy', icon: '◇', label: 'Giáo sĩ', badge: '' },
+      { href: '/admin/history', icon: '❖', label: 'Lược sử giáo xứ', badge: '' },
+      { href: '/admin/ministry', icon: '❋', label: 'Đoàn thể', badge: '' },
     ],
   },
   {

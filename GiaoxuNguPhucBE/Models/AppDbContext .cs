@@ -12,6 +12,11 @@ namespace GiaoxuNguPhucBE.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<CatechismRegistration> CatechismRegistrations { get; set; }
+        public DbSet<CatechismClass> CatechismClasses { get; set; }
+        public DbSet<ClergyMember> ClergyMembers { get; set; }
+        public DbSet<ParishHistoryMilestone> ParishHistoryMilestones { get; set; }
+        public DbSet<Ministry> Ministries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,6 +53,36 @@ namespace GiaoxuNguPhucBE.Data
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .IsRequired(false);
+
+            // Hỗ trợ truy vấn/lọc danh sách đăng ký giáo lý theo lớp, trạng thái, niên khóa
+            modelBuilder.Entity<CatechismRegistration>()
+                .HasIndex(r => new { r.ClassType, r.Status, r.SchoolYear });
+
+            modelBuilder.Entity<CatechismRegistration>()
+                .HasIndex(r => r.CreatedAt);
+
+            // Hỗ trợ truy vấn danh sách khóa học đang mở, sắp theo thứ tự hiển thị
+            modelBuilder.Entity<CatechismClass>()
+                .HasIndex(c => new { c.IsActive, c.DisplayOrder });
+
+            // Hỗ trợ truy vấn danh sách người đang phục vụ hiện tại, lọc theo niên khóa / loại
+            modelBuilder.Entity<ClergyMember>()
+                .HasIndex(c => new { c.IsCurrent, c.DisplayOrder });
+
+            modelBuilder.Entity<ClergyMember>()
+                .HasIndex(c => new { c.SchoolYear, c.Type });
+
+            // Hỗ trợ truy vấn dòng thời gian lược sử giáo xứ theo thứ tự hiển thị
+            modelBuilder.Entity<ParishHistoryMilestone>()
+                .HasIndex(h => h.DisplayOrder);
+
+            // Hỗ trợ truy vấn danh sách đoàn thể đang hoạt động theo thứ tự hiển thị,
+            // và lọc theo nhóm phân loại (tab) ở trang công khai
+            modelBuilder.Entity<Ministry>()
+                .HasIndex(m => new { m.IsActive, m.DisplayOrder });
+
+            modelBuilder.Entity<Ministry>()
+                .HasIndex(m => m.Category);
         }
     }
 

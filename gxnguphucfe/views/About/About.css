@@ -482,6 +482,86 @@
   border-color: var(--primary);
 }
 
+/* ─── HISTORY TIMELINE ─── */
+.historyTimeline {
+  position: relative;
+  margin-bottom: 4rem;
+  padding-left: 2rem;
+}
+
+.historyTimeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--border);
+}
+
+.historyItem {
+  position: relative;
+  padding-bottom: 2.5rem;
+}
+
+.historyItem:last-child {
+  padding-bottom: 0;
+}
+
+.historyYear {
+  position: relative;
+  display: inline-block;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+}
+
+.historyYear::before {
+  content: '';
+  position: absolute;
+  left: -2.35rem;
+  top: 0.35rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.historyBody {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.historyImg {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 1rem;
+}
+
+.historyTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.historyText {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
 /* ─── QUOTE ─── */
 .quoteBlock {
   background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fb 100%);

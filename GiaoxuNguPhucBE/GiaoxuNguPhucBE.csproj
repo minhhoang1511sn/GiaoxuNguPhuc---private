@@ -21,6 +21,9 @@
 
     <!-- MySQL -->
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+
+    <!-- Xuất file Excel (.xlsx) cho danh sách đăng ký giáo lý -->
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>
 
 </Project>

@@ -1,47 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./About.css";
+import { resolveImageUrl } from "@/app/lib/uploadImage";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 
 const tabs = [
   { id: "history", label: "Lịch sử", sub: "History" },
-  { id: "vision", label: "Tầm nhìn", sub: "Vision" },
-  { id: "clergy", label: "Quý Cha & Tu sĩ", sub: "Clergy" },
-  { id: "org", label: "Tổ chức", sub: "Organization" },
-  { id: "facilities", label: "Cơ sở vật chất", sub: "Facilities" },
+  { id: "clergy", label: "Quý Cha, Tu sĩ & Tổ chức", sub: "Clergy & Organization" },
 ];
 
-const clergy = [
-  {
-    name: "Lm. Giuse Nguyễn Văn An",
-    role: "Chánh Xứ",
-    roleEn: "Parish Priest",
-    badge: "Pastor",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1s07VdOYtQfjhA1lz2w_q2TnWG8L7zzP280GhQLCHGXBTkoLcnntyfAo-8SoxSN61z_3HvYcTNKtkfhdg9CKG_rsD3EYoqYtYDKlq9sZ7rAVfhxGARjhQGs3i3Hq_sXvfiYqGaCG-OeTohy0B5liVpz7onn0-7Gxc45Yj77f8syzwMilKZn4qzEDhz5THNTA4aGklxBt17gTPVuBPjNWqxsC3lZSDKt1Y5XlfGc5l0jxprYIUUNly8qCGtn0ucVHhNPTeBij5Sic",
-    hasPhone: true,
-  },
-  {
-    name: "Lm. Phêrô Trần Văn Bình",
-    role: "Phó Xứ",
-    roleEn: "Assistant Priest",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuADV1SqirlG8_5gn9Or5H6PfrP53TJMJNEd81_SO_R9ZYfbzC-5ukP1XuqLmWbt83k_OWErONtOIAYCCGvwfFD0qAW1DfHJYpcqe6QnOeJfCVe0-uNaPiDpTKHPnKzq6DLy-R8Ktl8P63VnRKCVWmFM-RwV6qKctfDTEj2By1lsVAFTfClQGpr9s-4yBDxv-b_z_fKATAUFdoG9PTdzr7OoSUaKJp6IPGZP7E0CEMMc8WDwoZ5ohJaqgo8RMrZCtbMk2GpFggWBqnA",
-  },
-  {
-    name: "Thầy Phó Tế Lê Văn Dũng",
-    role: "Phó Tế",
-    roleEn: "Deacon",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5Sqd30_inDgWloFdIB9BUiIAlat3BsgoM_k_f8lLIkSxYVFKJwyHa2Qjsvkz5zpRd9ZET1HGM0G0ytlHhoXcU-JcylRcgdV_ayn47ZiiIflXZc8xyPVmCViBvsXTSQNKnFf7vkIe51ffHmmXeteUkTM-Ws4NvOlHN36Fv62Qy7d9_2ah7ql8cv94v_E437Zsi0-qq-CvQiNTOD990sT88F3UrMczPJJvAOzhXNt1OzWcMFl3MrNdSEoE4PGsUUNP5oWbK2FFxOrE",
-  },
-  {
-    name: "Sr. Maria Celine",
-    role: "Phụ trách Giáo Lý",
-    roleEn: "Catechism",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBYl0d-fCcLRkzl57g-1Fa_KJTcSD_PLCy8UMkDuT30IO6fmb8PILb32C87SysuQ5cggCNI6CEdbw4su-K5sk7g51E1SsNJwTZKDwSY1wiRr18b36fC5hT2DBZ3m9odVF-a83AmLmQKIjYBmuMk3l4cTqPDT3HlAYve3G9SLd20_3-qRbJOZc_Q8Ph-HmIxgHJzBxYblwgrPjVHFDx7P5CPCqwRfOjBaV90xQ6Y9fDz7Ut4GegQ-5sMjnitiq8_D5NHAiq7bq_hKVU",
-  },
-];
+// Nhãn hiển thị badge riêng cho Chánh xứ, khớp phong cách cũ (Pastor)
+const PASTOR_BADGE_KEYWORDS = ["chánh xứ", "chanh xu"];
+
+function toRoleEn(typeName) {
+  switch (typeName) {
+    case "LinhMuc": return "Priest";
+    case "ThayXu": return "Deacon";
+    case "TuSi": return "Religious Sister";
+    default: return "Parish Staff";
+  }
+}
 
 export default function AboutPage() {
-  const [activeTab, setActiveTab] = useState("clergy");
+  const [activeTab, setActiveTab] = useState("history");
+  const [clergy, setClergy] = useState([]);
+  const [clergyLoading, setClergyLoading] = useState(true);
+  const [clergyError, setClergyError] = useState("");
+
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchClergy() {
+      setClergyLoading(true);
+      try {
+        const res = await fetch(`${BASE_URL}/api/clergy-members`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setClergy(data ?? []);
+      } catch (err) {
+        if (!cancelled) setClergyError("Không tải được danh sách Quý Cha & Tu sĩ.");
+      } finally {
+        if (!cancelled) setClergyLoading(false);
+      }
+    }
+
+    fetchClergy();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchHistory() {
+      setHistoryLoading(true);
+      try {
+        const res = await fetch(`${BASE_URL}/api/parish-history`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setHistory(data ?? []);
+      } catch (err) {
+        if (!cancelled) setHistoryError("Không tải được lược sử giáo xứ.");
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    }
+
+    fetchHistory();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="about-page">
@@ -72,55 +104,123 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* SECTION INTRO */}
-        <div className="sectionIntro">
-          <h2>
-            Quý Cha &amp; Tu sĩ <em>phục vụ</em>
-          </h2>
-          <p>
-            Meet the dedicated clergy and religious sisters who serve the
-            spiritual needs of Giáo xứ Ngũ Phúc.
-          </p>
-        </div>
-
-        {/* CLERGY GRID */}
-        <div className="clergyGrid">
-          {clergy.map((person) => (
-            <div key={person.name} className="clergyCard">
-              <div className="cardImgWrap">
-                <div
-                  className="cardImg"
-                  style={{ backgroundImage: `url("${person.image}")` }}
-                />
-                <div className="cardImgOverlay" />
-                {person.badge && (
-                  <div className="cardBadge">{person.badge}</div>
-                )}
-              </div>
-              <div className="cardBody">
-                <div className="cardName">{person.name}</div>
-                <div className="cardRole">{person.role}</div>
-                <div className="cardRoleEn">{person.roleEn}</div>
-                <div className="cardActions">
-                  <button className="cardActionBtn" title="Gửi email">✉</button>
-                  {person.hasPhone && (
-                    <button className="cardActionBtn" title="Gọi điện">📞</button>
-                  )}
-                </div>
-              </div>
+        {/* HISTORY TIMELINE */}
+        {activeTab === "history" && (
+          <>
+            <div className="sectionIntro">
+              <h2>
+                Lược sử <em>hình thành &amp; phát triển</em>
+              </h2>
+              <p>
+                Hành trình hình thành và phát triển của Giáo xứ Ngũ Phúc qua các
+                giai đoạn.
+              </p>
             </div>
-          ))}
-        </div>
 
-        {/* QUOTE */}
-        <div className="quoteBlock">
-          <span className="quoteIcon">❝</span>
-          <p className="quoteText">
-            "The priesthood is the love of the heart of Jesus. When you see a
-            priest, think of our Lord Jesus Christ."
-          </p>
-          <p className="quoteAuthor">— St. John Vianney</p>
-        </div>
+            {historyLoading ? (
+              <p style={{ padding: "24px 0" }}>Đang tải lược sử…</p>
+            ) : historyError ? (
+              <p style={{ padding: "24px 0" }}>{historyError}</p>
+            ) : history.length === 0 ? (
+              <p style={{ padding: "24px 0" }}>Chưa có nội dung lược sử giáo xứ.</p>
+            ) : (
+              <div className="historyTimeline">
+                {history.map((item) => (
+                  <div key={item.id} className="historyItem">
+                    <div className="historyYear">{item.year}</div>
+                    <div className="historyBody">
+                      {item.imageUrl && (
+                        <div
+                          className="historyImg"
+                          style={{ backgroundImage: `url("${resolveImageUrl(item.imageUrl)}")` }}
+                        />
+                      )}
+                      <h3 className="historyTitle">{item.title}</h3>
+                      <p className="historyText">{item.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* CLERGY & ORGANIZATION */}
+        {activeTab === "clergy" && (
+          <>
+            {/* SECTION INTRO */}
+            <div className="sectionIntro">
+              <h2>
+                Quý Cha &amp; Tu sĩ <em>phục vụ</em>
+              </h2>
+              <p>
+                Meet the dedicated clergy and religious sisters who serve the
+                spiritual needs of Giáo xứ Ngũ Phúc.
+              </p>
+            </div>
+
+            {/* CLERGY GRID */}
+            {clergyLoading ? (
+              <div className="clergyGrid">
+                <p style={{ padding: "24px 0" }}>Đang tải danh sách…</p>
+              </div>
+            ) : clergyError ? (
+              <div className="clergyGrid">
+                <p style={{ padding: "24px 0" }}>{clergyError}</p>
+              </div>
+            ) : clergy.length === 0 ? (
+              <div className="clergyGrid">
+                <p style={{ padding: "24px 0" }}>Chưa có thông tin Quý Cha & Tu sĩ đang phục vụ.</p>
+              </div>
+            ) : (
+              <div className="clergyGrid">
+                {clergy.map((person) => {
+                  const isPastor = PASTOR_BADGE_KEYWORDS.some((k) =>
+                    person.position?.toLowerCase().includes(k)
+                  );
+                  return (
+                    <div key={person.id} className="clergyCard">
+                      <div className="cardImgWrap">
+                        <div
+                          className="cardImg"
+                          style={person.imageUrl ? { backgroundImage: `url("${resolveImageUrl(person.imageUrl)}")` } : undefined}
+                        />
+                        <div className="cardImgOverlay" />
+                        {isPastor && <div className="cardBadge">Pastor</div>}
+                      </div>
+                      <div className="cardBody">
+                        <div className="cardName">{person.fullName}</div>
+                        <div className="cardRole">
+                          {person.position}
+                          {person.ministryName ? ` · ${person.ministryName}` : ""}
+                        </div>
+                        <div className="cardRoleEn">{toRoleEn(person.typeName)}</div>
+                        <div className="cardActions">
+                          {person.email && (
+                            <a className="cardActionBtn" title="Gửi email" href={`mailto:${person.email}`}>✉</a>
+                          )}
+                          {person.phone && (
+                            <a className="cardActionBtn" title="Gọi điện" href={`tel:${person.phone}`}>📞</a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* QUOTE */}
+            <div className="quoteBlock">
+              <span className="quoteIcon">❝</span>
+              <p className="quoteText">
+                "The priesthood is the love of the heart of Jesus. When you see a
+                priest, think of our Lord Jesus Christ."
+              </p>
+              <p className="quoteAuthor">— St. John Vianney</p>
+            </div>
+          </>
+        )}
 
       </main>
     </div>
