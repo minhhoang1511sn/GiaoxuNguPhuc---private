@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GiaoxuNguPhucBE.Respone;
 
@@ -30,6 +31,7 @@ namespace GiaoxuNguPhucBE.Controllers
         /// POST /api/uploads?folder=clergy - Upload 1 ảnh từ máy.
         /// folder dùng để phân loại thư mục lưu (clergy, posts...), mặc định "general".
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [RequestSizeLimit(MaxFileSizeBytes + 1024)]
         public async Task<ActionResult> UploadImage(IFormFile? file, [FromQuery] string folder = "general")

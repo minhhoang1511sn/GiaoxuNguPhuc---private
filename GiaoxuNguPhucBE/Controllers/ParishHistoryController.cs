@@ -1,6 +1,7 @@
 using GiaoxuNguPhucBE.DTOs;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GiaoxuNguPhucBE.Controllers
@@ -23,6 +24,7 @@ namespace GiaoxuNguPhucBE.Controllers
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/parish-history/admin - Toàn bộ danh sách (dùng cho trang quản trị)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<List<ParishHistoryMilestoneDto>>> GetAllAdmin()
         {
@@ -31,6 +33,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>GET /api/parish-history/admin/{id} - Chi tiết một mốc lược sử</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<ParishHistoryMilestoneDto>> GetById(int id)
         {
@@ -42,6 +45,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>POST /api/parish-history/admin - Thêm mới một mốc lược sử</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("admin")]
         public async Task<ActionResult<ParishHistoryMilestoneDto>> Create([FromBody] CreateParishHistoryMilestoneDto dto)
         {
@@ -53,6 +57,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>PUT /api/parish-history/admin/{id} - Sửa một mốc lược sử</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("admin/{id:int}")]
         public async Task<ActionResult<ParishHistoryMilestoneDto>> Update(int id, [FromBody] UpdateParishHistoryMilestoneDto dto)
         {
@@ -67,6 +72,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>DELETE /api/parish-history/admin/{id} - Xoá một mốc lược sử</summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("admin/{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {

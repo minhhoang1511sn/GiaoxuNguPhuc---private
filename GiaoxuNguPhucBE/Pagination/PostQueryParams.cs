@@ -13,6 +13,9 @@ namespace GiaoxuNguPhucBE.Pagination
         public bool? IsFeatured { get; init; }
         public bool? IsPinned { get; init; }
         public int? AuthorId { get; init; }
+        /// <summary>Lọc theo đoàn thể. Với tài khoản role User, BE tự ép giá trị này về
+        /// đúng đoàn thể của tài khoản đang đăng nhập, bất kể client gửi gì lên.</summary>
+        public int? MinistryId { get; init; }
         public string SortBy { get; init; } = "createdAt";
         public string SortOrder { get; init; } = "desc";
     }

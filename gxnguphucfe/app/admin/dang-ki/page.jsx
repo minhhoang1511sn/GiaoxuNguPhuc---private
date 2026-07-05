@@ -2,49 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './dang-ki.module.css';
+import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 const PAGE_SIZE = 10;
 
-// Khớp đúng giá trị số với enum RegistrationClassType ở backend
-const CLASS_TYPE_API = {
-  KhaiTam: 0,
-  RuocLe: 1,
-  ThemSuc: 2,
-  BaoDong: 3,
-  DuTong: 4,
-  GiaoLyHonNhan: 5,
-  Khac: 6,
+// Màu sắc hiển thị theo trạng thái — chỉ là style, nhãn (label) lấy từ BE.
+// Key phải khớp với enum RegistrationStatus ở backend (Models/RegistrationStatus.cs).
+const STATUS_STYLES = {
+  Pending: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', dot: '#f59e0b' },
+  Confirmed: { color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
+  Cancelled: { color: '#f87171', bg: 'rgba(248,113,113,0.12)', dot: '#ef4444' },
 };
-
-const CLASS_TYPE_LABELS = {
-  KhaiTam: 'Khai Tâm',
-  RuocLe: 'Xưng Tội - Rước Lễ',
-  ThemSuc: 'Thêm Sức',
-  BaoDong: 'Bao Đồng',
-  DuTong: 'Dự Tòng (RCIA)',
-  GiaoLyHonNhan: 'Giáo lý Hôn nhân',
-  Khac: 'Khác',
-};
-
-const CLASS_TYPES_LIST = Object.keys(CLASS_TYPE_API).map((key) => ({
-  key,
-  label: CLASS_TYPE_LABELS[key],
-}));
-
-const STATUS_CONFIG = {
-  Pending: { label: 'Chờ duyệt', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', dot: '#f59e0b' },
-  Confirmed: { label: 'Đã xác nhận', color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
-  Cancelled: { label: 'Đã huỷ', color: '#f87171', bg: 'rgba(248,113,113,0.12)', dot: '#ef4444' },
-};
-
-const STATUSES_FILTER = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'Pending', label: 'Chờ duyệt' },
-  { key: 'Confirmed', label: 'Đã xác nhận' },
-  { key: 'Cancelled', label: 'Đã huỷ' },
-];
 
 const SCHOOL_YEARS_FILTER = ['all', '2026-2027', '2027-2028'];
 
@@ -54,19 +25,19 @@ function fmtDate(d) {
 }
 
 /* ── API helpers ── */
-function buildQuery({ page, search, classType, status, schoolYear }) {
+function buildQuery({ page, search, classType, status, schoolYear }, classTypeValueByKey) {
   const params = new URLSearchParams();
   params.set('page', page);
   params.set('pageSize', PAGE_SIZE);
   if (search) params.set('search', search);
-  if (classType !== 'all') params.set('classType', CLASS_TYPE_API[classType]);
+  if (classType !== 'all') params.set('classType', classTypeValueByKey[classType]);
   if (status !== 'all') params.set('status', status);
   if (schoolYear !== 'all') params.set('schoolYear', schoolYear);
   return params.toString();
 }
 
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/catechism-registrations${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/catechism-registrations${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -78,15 +49,15 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-const apiGetList = (filters) => apiFetch(`/admin?${buildQuery(filters)}`);
+const apiGetList = (filters, classTypeValueByKey) => apiFetch(`/admin?${buildQuery(filters, classTypeValueByKey)}`);
 const apiGetDetail = (id) => apiFetch(`/admin/${id}`);
 const apiUpdateStatus = (id, status) =>
   apiFetch(`/admin/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
 const apiDelete = (id) => apiFetch(`/admin/${id}`, { method: 'DELETE' });
 
-async function apiExportExcel(filters) {
-  const query = buildQuery({ ...filters, page: 1 });
-  const res = await fetch(`${BASE_URL}/api/catechism-registrations/admin/export?${query}`);
+async function apiExportExcel(filters, classTypeValueByKey) {
+  const query = buildQuery({ ...filters, page: 1 }, classTypeValueByKey);
+  const res = await authFetch(`${BASE_URL}/api/catechism-registrations/admin/export?${query}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -114,8 +85,9 @@ function Toast({ toasts }) {
 }
 
 /* ── Detail Modal ── */
-function DetailModal({ item, onClose, onChangeStatus, onDelete }) {
-  const sc = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.Pending;
+function DetailModal({ item, onClose, onChangeStatus, onDelete, classTypeLabelByKey, statusLabelByKey }) {
+  const style = STATUS_STYLES[item.status] ?? STATUS_STYLES.Pending;
+  const statusLabel = statusLabelByKey[item.status] ?? item.status;
 
   const rows = [
     ['Họ và tên', item.fullName],
@@ -127,7 +99,7 @@ function DetailModal({ item, onClose, onChangeStatus, onDelete }) {
     ['Email', item.email || '—'],
     ['Địa chỉ', item.address],
     ['Giáo khu', item.parishZone || '—'],
-    ['Lớp giáo lý', CLASS_TYPE_LABELS[item.classType] ?? item.classType],
+    ['Lớp giáo lý', classTypeLabelByKey[item.classType] ?? item.classType],
     ['Niên khóa', item.schoolYear],
     ['Đã Rửa tội', item.isBaptized ? 'Có' : 'Chưa'],
     ['Nơi Rửa tội', item.baptismPlace || '—'],
@@ -147,9 +119,9 @@ function DetailModal({ item, onClose, onChangeStatus, onDelete }) {
         </div>
 
         <div className={styles.modalBody}>
-          <span className={styles.statusPill} style={{ background: sc.bg, color: sc.color, width: 'fit-content' }}>
-            <span className={styles.statusDot} style={{ background: sc.dot }} />
-            {sc.label}
+          <span className={styles.statusPill} style={{ background: style.bg, color: style.color, width: 'fit-content' }}>
+            <span className={styles.statusDot} style={{ background: style.dot }} />
+            {statusLabel}
           </span>
 
           <div className={styles.detailGrid}>
@@ -186,6 +158,16 @@ function DetailModal({ item, onClose, onChangeStatus, onDelete }) {
 
 /* ── Main Page ── */
 export default function CatechismRegistrationsPage() {
+  const { enums } = useEnumOptions();
+  const classTypesList = enums.classTypes;
+  const classTypeLabelByKey = toLabelMapByKey(classTypesList);
+  const classTypeValueByKey = toValueMapByKey(classTypesList);
+  const statusLabelByKey = toLabelMapByKey(enums.registrationStatuses);
+  const statusesFilter = [
+    { key: 'all', label: 'Tất cả' },
+    ...enums.registrationStatuses.map((s) => ({ key: s.key, label: s.label })),
+  ];
+
   const [items, setItems] = useState([]);
   const [totalCount, setTotal] = useState(0);
   const [totalPages, setTotalPg] = useState(1);
@@ -212,7 +194,7 @@ export default function CatechismRegistrationsPage() {
   const fetchList = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGetList(filters);
+      const data = await apiGetList(filters, classTypeValueByKey);
       setItems(data.items ?? []);
       setTotal(data.totalCount ?? 0);
       setTotalPg(data.totalPages ?? 1);
@@ -222,7 +204,7 @@ export default function CatechismRegistrationsPage() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, classType, status, schoolYear]);
+  }, [page, search, classType, status, schoolYear, classTypesList.length]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
@@ -263,7 +245,7 @@ export default function CatechismRegistrationsPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await apiExportExcel(filters);
+      await apiExportExcel(filters, classTypeValueByKey);
       addToast('Đã tải file Excel');
     } catch (err) {
       addToast('Xuất Excel thất bại: ' + err.message, 'error');
@@ -287,6 +269,8 @@ export default function CatechismRegistrationsPage() {
           onClose={() => setDetail(null)}
           onChangeStatus={handleChangeStatus}
           onDelete={handleDelete}
+          classTypeLabelByKey={classTypeLabelByKey}
+          statusLabelByKey={statusLabelByKey}
         />
       )}
 
@@ -320,7 +304,7 @@ export default function CatechismRegistrationsPage() {
             onChange={(e) => { setClassType(e.target.value); setPage(1); }}
           >
             <option value="all">Tất cả lớp giáo lý</option>
-            {CLASS_TYPES_LIST.map((c) => (
+            {classTypesList.map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
@@ -336,7 +320,7 @@ export default function CatechismRegistrationsPage() {
           </select>
 
           <div className={styles.chips}>
-            {STATUSES_FILTER.map((s) => (
+            {statusesFilter.map((s) => (
               <button
                 key={s.key}
                 className={`${styles.chip} ${status === s.key ? chipClass(s.key) : ''}`}
@@ -359,7 +343,8 @@ export default function CatechismRegistrationsPage() {
           ) : items.length === 0 ? (
             <div className={styles.tableEmpty}>Không tìm thấy đơn đăng ký phù hợp.</div>
           ) : items.map((item, i) => {
-            const sc = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.Pending;
+            const style = STATUS_STYLES[item.status] ?? STATUS_STYLES.Pending;
+            const statusLabel = statusLabelByKey[item.status] ?? item.status;
             return (
               <div
                 key={item.id}
@@ -371,13 +356,13 @@ export default function CatechismRegistrationsPage() {
                   <div className={styles.personName}>{item.fullName}</div>
                   <div className={styles.personSub}>{item.phone}</div>
                 </div>
-                <div className={styles.cell}>{CLASS_TYPE_LABELS[item.classType] ?? item.classType}</div>
+                <div className={styles.cell}>{classTypeLabelByKey[item.classType] ?? item.classType}</div>
                 <div className={styles.cell}>{item.schoolYear}</div>
                 <div className={styles.cell}>{fmtDate(item.createdAt)}</div>
                 <div>
-                  <span className={styles.statusPill} style={{ background: sc.bg, color: sc.color }}>
-                    <span className={styles.statusDot} style={{ background: sc.dot }} />
-                    {sc.label}
+                  <span className={styles.statusPill} style={{ background: style.bg, color: style.color }}>
+                    <span className={styles.statusDot} style={{ background: style.dot }} />
+                    {statusLabel}
                   </span>
                 </div>
                 <div className={styles.rowActions}>

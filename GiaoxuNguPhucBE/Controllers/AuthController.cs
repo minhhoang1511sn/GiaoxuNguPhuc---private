@@ -1,84 +1,90 @@
-﻿using GiaoxuNguPhucBE.Data;
-using GiaoxuNguPhucBE.DTOs;
-using GiaoxuNguPhucBE.Models;
+﻿using GiaoxuNguPhucBE.DTOs;
+using GiaoxuNguPhucBE.Interfaces;
+using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace GiaoxuNguPhucBE.Controllers
 {
+    /// <summary>
+    /// Đăng ký / đăng nhập / làm mới token. Đăng nhập trả về 1 cặp:
+    /// - AccessToken (JWT, hạn ngắn) dùng để gọi các API cần xác thực (header Authorization: Bearer ...)
+    /// - RefreshToken (chuỗi ngẫu nhiên, hạn dài) dùng để xin AccessToken mới khi hết hạn mà không cần đăng nhập lại.
+    /// </summary>
     [ApiController]
     [Route("api/auth")]
-    public class AuthController : ControllerBase
+    [Produces("application/json")]
+    public class AuthController(IAuthService authService) : ControllerBase
     {
-        private readonly AppDbContext _context;
-
-        public AuthController(AppDbContext context)
-        {
-            _context = context;
-        }
-
         // ================= REGISTER =================
+        /// <summary>POST /api/auth/register - Đăng ký tài khoản mới. Tài khoản ở trạng thái CHỜ DUYỆT,
+        /// KHÔNG tự động đăng nhập — Admin sẽ nhận email thông báo để duyệt hoặc từ chối.</summary>
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<ActionResult<RegisterResultDto>> Register([FromBody] RegisterRequest request)
         {
-            if (request.Password != request.ConfirmPassword)
-                return BadRequest("Mật khẩu không khớp");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var exists = await _context.Users.AnyAsync(x => x.Email == request.Email);
-            if (exists)
-                return BadRequest("Email đã tồn tại");
-
-            var user = new User
+            try
             {
-                FullName = request.FullName,
-                Email = request.Email,
-                PasswordHash = HashPassword(request.Password)
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+                var result = await authService.RegisterAsync(request, GetClientIp());
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
             {
-                message = "Đăng ký thành công"
-            });
+                return BadRequest(new ApiError(ex.Message));
+            }
         }
 
         // ================= LOGIN =================
+        /// <summary>POST /api/auth/login - Đăng nhập bằng email/mật khẩu</summary>
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<ActionResult<AuthResultDto>> Login([FromBody] LoginRequest request)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(x => x.Email == request.Email);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            if (user == null)
-                return Unauthorized("Email hoặc mật khẩu không đúng");
-
-            var passwordHash = HashPassword(request.Password);
-            if (user.PasswordHash != passwordHash)
-                return Unauthorized("Email hoặc mật khẩu không đúng");
-
-            return Ok(new
+            try
             {
-                message = "Đăng nhập thành công",
-                user = new
-                {
-                    user.Id,
-                    user.FullName,
-                    user.Email
-                }
-            });
+                var result = await authService.LoginAsync(request, GetClientIp());
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiError(ex.Message));
+            }
         }
 
-        // ================= HASH PASSWORD =================
-        private string HashPassword(string password)
+        // ================= REFRESH =================
+        /// <summary>POST /api/auth/refresh - Dùng RefreshToken để xin cặp AccessToken/RefreshToken mới (xoay vòng)</summary>
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResultDto>> Refresh([FromBody] RefreshTokenRequestDto request)
         {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await authService.RefreshTokenAsync(request.RefreshToken, GetClientIp());
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new ApiError(ex.Message));
+            }
         }
+
+        // ================= LOGOUT =================
+        /// <summary>POST /api/auth/logout - Thu hồi RefreshToken hiện tại (đăng xuất khỏi thiết bị này)</summary>
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto request)
+        {
+            await authService.RevokeRefreshTokenAsync(request.RefreshToken, GetClientIp());
+            return Ok(new { message = "Đã đăng xuất" });
+        }
+
+        // ================= HELPER =================
+        private string? GetClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 }

@@ -3,31 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './ministry.module.css';
 import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
+import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
-
-// Khớp đúng giá trị số với enum MinistryCategory ở backend (Models/MinistryCategory.cs).
-// Không đổi số của mục đã có.
-const CATEGORY_API = {
-  Liturgy: 0,
-  Youth: 1,
-  Charity: 2,
-  Education: 3,
-};
-
-const CATEGORY_LABELS = {
-  Liturgy: 'Phụng vụ',
-  Youth: 'Giới trẻ',
-  Charity: 'Xã hội & Bác ái',
-  Education: 'Giáo dục',
-};
-
-const CATEGORIES_LIST = Object.keys(CATEGORY_API).map((key) => ({
-  key,
-  value: CATEGORY_API[key],
-  label: CATEGORY_LABELS[key],
-}));
 
 const STATUSES_FILTER = [
   { key: 'all', label: 'Tất cả' },
@@ -37,7 +17,7 @@ const STATUSES_FILTER = [
 
 const EMPTY_FORM = {
   name: '',
-  category: 'Liturgy',
+  category: '',
   categoryLabel: '',
   description: '',
   imageUrl: '',
@@ -50,7 +30,7 @@ const EMPTY_FORM = {
    API helpers
 ════════════════════════════════ */
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/ministries${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/ministries${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -86,9 +66,9 @@ function Toast({ toasts }) {
 /* ════════════════════════════════
    Modal
 ════════════════════════════════ */
-function MinistryModal({ mode, initial, onClose, onSave }) {
+function MinistryModal({ mode, initial, onClose, onSave, categoriesList }) {
   const isEdit = mode === 'edit';
-  const [form, setForm] = useState(initial ?? EMPTY_FORM);
+  const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, category: categoriesList[0]?.key ?? '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -185,7 +165,7 @@ function MinistryModal({ mode, initial, onClose, onSave }) {
               value={form.category}
               onChange={(e) => set('category', e.target.value)}
             >
-              {CATEGORIES_LIST.map((c) => (
+              {categoriesList.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
@@ -328,6 +308,11 @@ function MinistryModal({ mode, initial, onClose, onSave }) {
    Main page
 ════════════════════════════════ */
 export default function MinistryAdminPage() {
+  const { enums } = useEnumOptions();
+  const categoriesList = enums.ministryCategories;
+  const categoryLabelByKey = toLabelMapByKey(categoriesList);
+  const categoryValueByKey = toValueMapByKey(categoriesList);
+
   const [ministries, setMinistries] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -374,7 +359,7 @@ export default function MinistryAdminPage() {
   const handleSave = async (formData, editId) => {
     const payload = {
       name: formData.name.trim(),
-      category: CATEGORY_API[formData.category] ?? 0,
+      category: categoryValueByKey[formData.category] ?? 0,
       categoryLabel: formData.categoryLabel?.trim() || null,
       description: formData.description.trim(),
       imageUrl: formData.imageUrl?.trim() || null,
@@ -443,6 +428,7 @@ export default function MinistryAdminPage() {
           initial={modal.mode === 'edit' ? modal.ministry : undefined}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          categoriesList={categoriesList}
         />
       )}
 
@@ -489,7 +475,7 @@ export default function MinistryAdminPage() {
             onChange={(e) => setActiveCategory(e.target.value)}
           >
             <option value="all">Tất cả phân loại</option>
-            {CATEGORIES_LIST.map((c) => (
+            {categoriesList.map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
@@ -520,7 +506,7 @@ export default function MinistryAdminPage() {
                   <div className={styles.postAuthor} title={ministry.description}>{ministry.description}</div>
                 </div>
               </div>
-              <div className={styles.dateCell}>{ministry.categoryLabel || CATEGORY_LABELS[ministry.categoryName] || ministry.categoryName}</div>
+              <div className={styles.dateCell}>{ministry.categoryLabel || categoryLabelByKey[ministry.categoryName] || ministry.categoryName}</div>
               <div className={styles.dateCell}>{ministry.displayOrder}</div>
               <div>
                 <span

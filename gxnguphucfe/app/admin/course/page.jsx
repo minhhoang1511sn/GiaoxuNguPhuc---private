@@ -2,37 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './course.module.css';
+import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
-
-// Khớp đúng giá trị số với enum RegistrationClassType ở backend
-// (Models/RegistrationClassType.cs). Không đổi số của mục đã có.
-const CLASS_TYPE_API = {
-  KhaiTam: 0,
-  RuocLe: 1,
-  ThemSuc: 2,
-  BaoDong: 3,
-  DuTong: 4,
-  GiaoLyHonNhan: 5,
-  Khac: 6,
-};
-
-const CLASS_TYPE_LABELS = {
-  KhaiTam: 'Khai Tâm',
-  RuocLe: 'Xưng Tội - Rước Lễ',
-  ThemSuc: 'Thêm Sức',
-  BaoDong: 'Bao Đồng',
-  DuTong: 'Dự Tòng (RCIA)',
-  GiaoLyHonNhan: 'Giáo lý Hôn nhân',
-  Khac: 'Khác (khóa học tự do)',
-};
-
-const CLASS_TYPES_LIST = Object.keys(CLASS_TYPE_API).map((key) => ({
-  key,
-  value: CLASS_TYPE_API[key],
-  label: CLASS_TYPE_LABELS[key],
-}));
 
 const STATUSES_FILTER = [
   { key: 'all', label: 'Tất cả' },
@@ -43,7 +17,7 @@ const STATUSES_FILTER = [
 const EMPTY_FORM = {
   name: '',
   description: '',
-  classType: 'KhaiTam',
+  classType: '',
   schoolYear: '',
   displayOrder: 0,
   isActive: true,
@@ -57,7 +31,7 @@ function fmtDate(d) {
    API helpers
 ════════════════════════════════ */
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/catechism-classes${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/catechism-classes${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -93,9 +67,9 @@ function Toast({ toasts }) {
 /* ════════════════════════════════
    Modal
 ════════════════════════════════ */
-function CourseModal({ mode, initial, onClose, onSave }) {
+function CourseModal({ mode, initial, onClose, onSave, classTypesList }) {
   const isEdit = mode === 'edit';
-  const [form, setForm] = useState(initial ?? EMPTY_FORM);
+  const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, classType: classTypesList[0]?.key ?? '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -172,7 +146,7 @@ function CourseModal({ mode, initial, onClose, onSave }) {
               value={form.classType}
               onChange={(e) => set('classType', e.target.value)}
             >
-              {CLASS_TYPES_LIST.map((c) => (
+              {classTypesList.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
@@ -235,6 +209,11 @@ function CourseModal({ mode, initial, onClose, onSave }) {
    Main page
 ════════════════════════════════ */
 export default function CoursePage() {
+  const { enums } = useEnumOptions();
+  const classTypesList = enums.classTypes;
+  const classTypeLabelByKey = toLabelMapByKey(classTypesList);
+  const classTypeValueByKey = toValueMapByKey(classTypesList);
+
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -276,7 +255,7 @@ export default function CoursePage() {
     const payload = {
       name: formData.name.trim(),
       description: formData.description?.trim() || null,
-      classType: CLASS_TYPE_API[formData.classType] ?? 0,
+      classType: classTypeValueByKey[formData.classType] ?? 0,
       schoolYear: formData.schoolYear?.trim() || null,
       displayOrder: Number(formData.displayOrder) || 0,
       isActive: formData.isActive,
@@ -340,6 +319,7 @@ export default function CoursePage() {
           initial={modal.mode === 'edit' ? modal.course : undefined}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          classTypesList={classTypesList}
         />
       )}
 
@@ -403,7 +383,7 @@ export default function CoursePage() {
                   )}
                 </div>
               </div>
-              <div className={styles.dateCell}>{CLASS_TYPE_LABELS[course.classTypeName] ?? course.classTypeName}</div>
+              <div className={styles.dateCell}>{classTypeLabelByKey[course.classTypeName] ?? course.classTypeName}</div>
               <div className={styles.dateCell}>{course.schoolYear || 'Mọi niên khóa'}</div>
               <div className={styles.statCell}>{course.displayOrder}</div>
               <div>

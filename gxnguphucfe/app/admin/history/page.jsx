@@ -5,6 +5,7 @@ import styles from './history.module.css';
 import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 const EMPTY_FORM = {
@@ -19,7 +20,7 @@ const EMPTY_FORM = {
    API helpers
 ════════════════════════════════ */
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/parish-history${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/parish-history${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });

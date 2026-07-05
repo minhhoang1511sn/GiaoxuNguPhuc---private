@@ -1,5 +1,6 @@
 import './globals.css';
 import ClientLayout from '../app/components/layouts/ClientLayout';
+import { AuthProvider } from './contexts/AuthContext';
 
 export const metadata = {
   title: 'Giáo xứ Ngũ Phúc',
@@ -16,7 +17,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body suppressHydrationWarning>
-        <ClientLayout>{children}</ClientLayout>
+        <AuthProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </AuthProvider>
       </body>
     </html>
   );

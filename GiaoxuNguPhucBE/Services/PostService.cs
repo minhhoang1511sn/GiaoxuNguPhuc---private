@@ -14,11 +14,33 @@ namespace GiaoxuNguPhucBE.Services
     {
         // ── CreatePost ─────────────────────────────────────────────────────────
 
-        public async Task<PostDetailDto> CreatePostAsync(CreatePostDto dto)
+        public async Task<PostDetailDto> CreatePostAsync(CreatePostDto dto, int currentUserId, int? currentMinistryId, bool isAdmin)
         {
-            var authorExists = await db.Users.AnyAsync(u => u.Id == dto.AuthorId);
-            if (!authorExists)
-                throw new ArgumentException($"Author with id {dto.AuthorId} not found.");
+            // Tài khoản role User: bắt buộc phải thuộc 1 đoàn thể mới được đăng bài,
+            // và bài viết luôn được gắn với chính đoàn thể đó (không tự chọn đoàn thể khác được).
+            int authorId;
+            int? ministryId;
+
+            if (isAdmin)
+            {
+                authorId = dto.AuthorId;
+                ministryId = dto.MinistryId;
+
+                var authorExists = await db.Users.AnyAsync(u => u.Id == authorId);
+                if (!authorExists)
+                    throw new ArgumentException($"Author with id {authorId} not found.");
+
+                if (ministryId.HasValue && !await db.Ministries.AnyAsync(m => m.Id == ministryId))
+                    throw new ArgumentException($"Ministry with id {ministryId} not found.");
+            }
+            else
+            {
+                if (currentMinistryId is null)
+                    throw new InvalidOperationException("Tài khoản chưa được gán đoàn thể nào, không thể đăng bài. Vui lòng liên hệ Admin.");
+
+                authorId = currentUserId;
+                ministryId = currentMinistryId;
+            }
 
             var slugSeed = string.IsNullOrWhiteSpace(dto.Slug) ? dto.Title : dto.Slug;
             var slug = await GenerateUniqueSlugAsync(slugSeed);
@@ -33,7 +55,8 @@ namespace GiaoxuNguPhucBE.Services
                 Content         = dto.Content,
                 ThumbnailUrl    = dto.ThumbnailUrl,
                 CoverImageUrl   = dto.CoverImageUrl,
-                AuthorId        = dto.AuthorId,
+                AuthorId        = authorId,
+                MinistryId      = ministryId,
                 Category        = dto.Category,
                 Tags            = NormalizeTags(dto.Tags),
                 Status          = dto.Status,
@@ -51,6 +74,7 @@ namespace GiaoxuNguPhucBE.Services
             db.Posts.Add(post);
             await db.SaveChangesAsync();
             await db.Entry(post).Reference(p => p.Author).LoadAsync();
+            await db.Entry(post).Reference(p => p.Ministry).LoadAsync();
 
             return MapToDetail(post, []);
         }
@@ -61,6 +85,7 @@ namespace GiaoxuNguPhucBE.Services
         {
             var query = db.Posts
                 .Include(p => p.Author)
+                .Include(p => p.Ministry)
                 .Include(p => p.Comments)
                 .AsQueryable();
 
@@ -90,6 +115,9 @@ namespace GiaoxuNguPhucBE.Services
 
             if (q.AuthorId.HasValue)
                 query = query.Where(p => p.AuthorId == q.AuthorId);
+
+            if (q.MinistryId.HasValue)
+                query = query.Where(p => p.MinistryId == q.MinistryId);
 
             query = (q.SortBy.ToLower(), q.SortOrder.ToLower()) switch
             {
@@ -127,6 +155,7 @@ namespace GiaoxuNguPhucBE.Services
         {
             var posts = await db.Posts
                 .Include(p => p.Author)
+                .Include(p => p.Ministry)
                 .Include(p => p.Comments)
                 .Where(p => p.Status == PostStatus.Published && p.IsFeatured)
                 .OrderByDescending(p => p.PublishedAt)
@@ -142,6 +171,7 @@ namespace GiaoxuNguPhucBE.Services
         {
             var post = await db.Posts
                 .Include(p => p.Author)
+                .Include(p => p.Ministry)
                 .Include(p => p.Comments)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -162,6 +192,7 @@ namespace GiaoxuNguPhucBE.Services
         {
             var post = await db.Posts
                 .Include(p => p.Author)
+                .Include(p => p.Ministry)
                 .Include(p => p.Comments)
                 .FirstOrDefaultAsync(p => p.Slug == slug);
 
@@ -178,14 +209,19 @@ namespace GiaoxuNguPhucBE.Services
 
         // ── UpdatePost ─────────────────────────────────────────────────────────
 
-        public async Task<PostDetailDto?> UpdatePostAsync(int id, UpdatePostDto dto)
+        public async Task<PostDetailDto?> UpdatePostAsync(int id, UpdatePostDto dto, int? currentMinistryId, bool isAdmin)
         {
             var post = await db.Posts
                 .Include(p => p.Author)
+                .Include(p => p.Ministry)
                 .Include(p => p.Comments)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (post is null) return null;
+
+            // Tài khoản role User chỉ được sửa bài thuộc đúng đoàn thể của mình.
+            if (!isAdmin && post.MinistryId != currentMinistryId)
+                throw new UnauthorizedAccessException("Bạn không có quyền sửa bài viết này (không thuộc đoàn thể của bạn).");
 
             // Nếu người dùng đổi tiêu đề hoặc chỉ định slug mới khác slug hiện tại -> sinh lại slug
             var desiredSlugSeed = string.IsNullOrWhiteSpace(dto.Slug) ? dto.Title : dto.Slug;
@@ -213,16 +249,29 @@ namespace GiaoxuNguPhucBE.Services
             post.MetaDescription = dto.MetaDescription;
             post.UpdatedAt       = DateTime.UtcNow;
 
+            // Chỉ Admin mới được đổi đoàn thể sở hữu bài viết
+            if (isAdmin && dto.MinistryId != post.MinistryId)
+            {
+                if (dto.MinistryId.HasValue && !await db.Ministries.AnyAsync(m => m.Id == dto.MinistryId))
+                    throw new ArgumentException($"Ministry with id {dto.MinistryId} not found.");
+                post.MinistryId = dto.MinistryId;
+                await db.Entry(post).Reference(p => p.Ministry).LoadAsync();
+            }
+
             await db.SaveChangesAsync();
             return MapToDetail(post, post.Comments.ToList());
         }
 
         // ── DeletePost ─────────────────────────────────────────────────────────
 
-        public async Task<bool> DeletePostAsync(int id)
+        public async Task<bool> DeletePostAsync(int id, int? currentMinistryId, bool isAdmin)
         {
             var post = await db.Posts.FindAsync(id);
             if (post is null) return false;
+
+            // Tài khoản role User chỉ được xoá bài thuộc đúng đoàn thể của mình.
+            if (!isAdmin && post.MinistryId != currentMinistryId)
+                throw new UnauthorizedAccessException("Bạn không có quyền xoá bài viết này (không thuộc đoàn thể của bạn).");
 
             db.Posts.Remove(post);
             await db.SaveChangesAsync();
@@ -357,6 +406,8 @@ namespace GiaoxuNguPhucBE.Services
             post.AuthorId,
             post.Author?.FullName ?? string.Empty,
             post.Author?.AvatarUrl,
+            post.MinistryId,
+            post.Ministry?.Name,
             post.CreatedAt,
             post.UpdatedAt,
             comments.Select(c => new CommentDto(c.Id, c.Content, c.AuthorName, c.AuthorEmail, c.CreatedAt)).ToList()
@@ -378,6 +429,8 @@ namespace GiaoxuNguPhucBE.Services
             post.PublishedAt,
             post.Author?.FullName ?? string.Empty,
             post.Author?.AvatarUrl,
+            post.MinistryId,
+            post.Ministry?.Name,
             post.CreatedAt,
             post.UpdatedAt,
             post.Comments.Count

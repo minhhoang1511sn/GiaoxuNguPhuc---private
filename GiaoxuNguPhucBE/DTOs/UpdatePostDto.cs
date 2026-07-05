@@ -18,6 +18,9 @@ namespace GiaoxuNguPhucBE.DTOs
         DateTime? EventDate = null,
         string? MetaTitle = null,
         string? MetaDescription = null,
-        string? Slug = null
+        string? Slug = null,
+        /// <summary>Chỉ Admin mới đổi được đoàn thể sở hữu bài; với tài khoản role User, BE bỏ qua
+        /// giá trị này (giữ nguyên MinistryId hiện có của bài viết).</summary>
+        int? MinistryId = null
     );
 }

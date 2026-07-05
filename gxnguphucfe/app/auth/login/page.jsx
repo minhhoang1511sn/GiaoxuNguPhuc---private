@@ -6,39 +6,47 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function Login() {
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const { login, user, loading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Đã đăng nhập sẵn (ví dụ mở lại tab) -> vào thẳng /admin, khỏi phải đăng
+  // nhập lại. Mọi tài khoản đã đăng nhập đều được vào /admin — việc giới hạn
+  // tính năng theo vai trò (Admin toàn quyền, User theo đoàn thể) nằm ở bên
+  // trong AdminLayout, không phải ở bước điều hướng này.
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      router.replace('/admin');
+    }
+  }, [loading, user, router]);
+
   if (!mounted) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSubmitting(true);
+
     try {
-      const res = await fetch("http://localhost:5109/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data || "Đăng nhập thất bại");
-        return;
-      }
-
-      router.push('/admin');
+      await login(email, password);
+      // Không tự router.push ở đây nữa — useEffect phía trên sẽ tự điều hướng
+      // ngay khi "user" trong AuthContext được cập nhật, tránh việc gọi
+      // điều hướng 2 lần cùng lúc (1 lần ở đây, 1 lần ở effect) gây xung đột.
     } catch (err) {
-      console.error("Không kết nối được API:", err);
-      alert("Không kết nối được server");
+      setError(err.message || 'Đăng nhập thất bại');
+      setSubmitting(false);
     }
   };
 
@@ -54,6 +62,8 @@ export default function Login() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit}>
+
+          {error && <div className={styles.errorAlert}>{error}</div>}
 
           {/* EMAIL */}
           <div className={styles.formGroup}>
@@ -98,15 +108,15 @@ export default function Login() {
           </div>
 
           {/* BUTTON */}
-          <button type="submit" className={styles.btn}>
-            Đăng nhập
+          <button type="submit" className={styles.btn} disabled={submitting}>
+            {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
 
         {/* FOOTER */}
         <div className={styles.textCenter}>
           <span>Chưa có tài khoản?</span>{' '}
-          <Link href="/register">Đăng ký</Link>
+          <Link href="/auth/register">Đăng ký</Link>
         </div>
 
       </div>

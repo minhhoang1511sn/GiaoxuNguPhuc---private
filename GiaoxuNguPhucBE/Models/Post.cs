@@ -61,6 +61,11 @@ namespace GiaoxuNguPhucBE.Models
         public int AuthorId { get; set; }
         public User Author { get; set; } = null!;
 
+        /// <summary>Bài viết thuộc đoàn thể nào (null = bài chung của giáo xứ, do Admin đăng).
+        /// Tài khoản role User chỉ được sửa/xoá bài có MinistryId trùng với đoàn thể của mình.</summary>
+        public int? MinistryId { get; set; }
+        public Ministry? Ministry { get; set; }
+
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }

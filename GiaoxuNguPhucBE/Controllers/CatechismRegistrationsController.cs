@@ -4,6 +4,7 @@ using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Models;
 using GiaoxuNguPhucBE.Pagination;
 using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GiaoxuNguPhucBE.Controllers
@@ -31,6 +32,7 @@ namespace GiaoxuNguPhucBE.Controllers
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/catechism-registrations/admin - Danh sách đăng ký, có lọc + phân trang (admin)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<PagedResult<CatechismRegistrationDto>>> GetAll([FromQuery] RegistrationQueryParams queryParams)
         {
@@ -39,6 +41,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>GET /api/catechism-registrations/admin/{id} - Chi tiết một đơn đăng ký (admin)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<CatechismRegistrationDto>> GetForAdmin(int id)
         {
@@ -50,6 +53,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>PUT /api/catechism-registrations/admin/{id}/status - Duyệt/huỷ đơn (admin)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("admin/{id:int}/status")]
         public async Task<ActionResult<CatechismRegistrationDto>> UpdateStatus(int id, [FromBody] UpdateRegistrationStatusDto dto)
         {
@@ -61,6 +65,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>DELETE /api/catechism-registrations/admin/{id} - Xoá một đơn đăng ký (admin)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("admin/{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {
@@ -75,6 +80,7 @@ namespace GiaoxuNguPhucBE.Controllers
         /// GET /api/catechism-registrations/admin/export - Xuất file Excel (.xlsx) danh sách đăng ký
         /// khớp với các filter hiện tại (không phân trang, xuất toàn bộ kết quả lọc).
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/export")]
         public async Task<IActionResult> Export([FromQuery] RegistrationQueryParams queryParams)
         {

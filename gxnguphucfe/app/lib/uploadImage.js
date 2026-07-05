@@ -1,3 +1,5 @@
+import { authFetch } from '@/app/lib/authClient';
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 /**
@@ -10,7 +12,7 @@ export async function uploadImage(file, folder = 'general') {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${BASE_URL}/api/uploads?folder=${encodeURIComponent(folder)}`, {
+  const res = await authFetch(`${BASE_URL}/api/uploads?folder=${encodeURIComponent(folder)}`, {
     method: 'POST',
     body: formData,
   });

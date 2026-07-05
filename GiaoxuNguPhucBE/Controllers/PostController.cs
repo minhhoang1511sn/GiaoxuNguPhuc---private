@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using GiaoxuNguPhucBE.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using GiaoxuNguPhucBE.Pagination;
 using GiaoxuNguPhucBE.DTOs;
 using GiaoxuNguPhucBE.Respone;
+using System.Security.Claims;
 namespace GiaoxuNguPhucBE.Controllers
 {
     [ApiController]
@@ -80,17 +82,29 @@ namespace GiaoxuNguPhucBE.Controllers
             }
         }
 
-        // ── Admin Endpoints ────────────────────────────────────────────────────────
+        // ── Quản trị bài viết (Admin: toàn bộ | User: chỉ bài viết đoàn thể của mình) ──
 
-        /// <summary>GET /api/posts/admin - Get ALL posts including drafts (admin)</summary>
+        /// <summary>GET /api/posts/admin - Get ALL posts including drafts.
+        /// Admin thấy toàn bộ; tài khoản role User chỉ thấy bài viết thuộc đoàn thể của mình.</summary>
+        [Authorize]
         [HttpGet("admin")]
         public async Task<ActionResult<PagedResult<PostListDto>>> GetAllPosts([FromQuery] PostQueryParams queryParams)
         {
+            if (!IsAdmin)
+            {
+                if (CurrentMinistryId is null)
+                    return Forbid();
+
+                // Ép cứng MinistryId về đúng đoàn thể của tài khoản, bỏ qua giá trị client gửi lên.
+                queryParams = queryParams with { MinistryId = CurrentMinistryId };
+            }
+
             var result = await postService.GetPostsAsync(queryParams, publishedOnly: false);
             return Ok(result);
         }
 
-        /// <summary>GET /api/posts/admin/{id} - Get post detail by id without incrementing view count (admin)</summary>
+        /// <summary>GET /api/posts/admin/{id} - Get post detail by id without incrementing view count</summary>
+        [Authorize]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<PostDetailDto>> GetPostForAdmin(int id)
         {
@@ -98,10 +112,16 @@ namespace GiaoxuNguPhucBE.Controllers
             if (post is null)
                 return NotFound(new ApiError($"Post with id {id} not found."));
 
+            if (!IsAdmin && post.MinistryId != CurrentMinistryId)
+                return Forbid();
+
             return Ok(post);
         }
 
-        /// <summary>POST /api/posts - Create a new post (admin)</summary>
+        /// <summary>POST /api/posts - Create a new post.
+        /// Admin có thể tạo bài cho bất kỳ đoàn thể nào (hoặc bài chung); tài khoản role User
+        /// phải đã được gán đoàn thể, bài viết sẽ tự động thuộc đoàn thể đó.</summary>
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<PostDetailDto>> CreatePost([FromBody] CreatePostDto dto)
         {
@@ -110,8 +130,39 @@ namespace GiaoxuNguPhucBE.Controllers
 
             try
             {
-                var post = await postService.CreatePostAsync(dto);
+                var post = await postService.CreatePostAsync(dto, CurrentUserId, CurrentMinistryId, IsAdmin);
                 return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiError(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiError(ex.Message));
+            }
+        }
+
+        /// <summary>PUT /api/posts/{id} - Update a post.
+        /// Admin sửa được mọi bài; tài khoản role User chỉ sửa được bài thuộc đoàn thể của mình.</summary>
+        [Authorize]
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<PostDetailDto>> UpdatePost(int id, [FromBody] UpdatePostDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var post = await postService.UpdatePostAsync(id, dto, CurrentMinistryId, IsAdmin);
+                if (post is null)
+                    return NotFound(new ApiError($"Post with id {id} not found."));
+
+                return Ok(post);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
             }
             catch (ArgumentException ex)
             {
@@ -119,29 +170,35 @@ namespace GiaoxuNguPhucBE.Controllers
             }
         }
 
-        /// <summary>PUT /api/posts/{id} - Update a post (admin)</summary>
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult<PostDetailDto>> UpdatePost(int id, [FromBody] UpdatePostDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var post = await postService.UpdatePostAsync(id, dto);
-            if (post is null)
-                return NotFound(new ApiError($"Post with id {id} not found."));
-
-            return Ok(post);
-        }
-
-        /// <summary>DELETE /api/posts/{id} - Delete a post (admin)</summary>
+        /// <summary>DELETE /api/posts/{id} - Delete a post.
+        /// Admin xoá được mọi bài; tài khoản role User chỉ xoá được bài thuộc đoàn thể của mình.</summary>
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> DeletePost(int id)
         {
-            var deleted = await postService.DeletePostAsync(id);
-            if (!deleted)
-                return NotFound(new ApiError($"Post with id {id} not found."));
+            try
+            {
+                var deleted = await postService.DeletePostAsync(id, CurrentMinistryId, IsAdmin);
+                if (!deleted)
+                    return NotFound(new ApiError($"Post with id {id} not found."));
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
         }
+
+        // ── Helper ─────────────────────────────────────────────────────────────
+
+        private int CurrentUserId =>
+            int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        private bool IsAdmin => User.IsInRole("Admin");
+
+        /// <summary>Đoàn thể của tài khoản đang đăng nhập (đọc từ claim trong AccessToken), null nếu chưa được gán.</summary>
+        private int? CurrentMinistryId =>
+            int.TryParse(User.FindFirstValue("MinistryId"), out var ministryId) ? ministryId : null;
     }
 }

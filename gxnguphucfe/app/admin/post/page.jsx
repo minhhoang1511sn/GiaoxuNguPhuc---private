@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './post.module.css';
 import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
+import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
+import { useAuth } from '@/app/contexts/AuthContext';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
-const AUTHOR_ID = 1; // TODO: lấy từ auth context sau khi làm login
 
+// Đây thuần là lựa chọn icon hiển thị (không có khái niệm tương ứng ở BE) nên vẫn giữ ở frontend.
 const ICONS = [
   { value: '✦', label: '✦  Ngôi sao' },
   { value: '◈', label: '◈  Kim cương lưới' },
@@ -21,61 +24,16 @@ const ICONS = [
   { value: '◒', label: '◒  Nửa dưới' },
 ];
 
-const STATUS_CONFIG = {
-  Published: { label: 'Đã đăng',   color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
-  Draft:     { label: 'Bản nháp',  color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', dot: '#64748b' },
-  Review:    { label: 'Chờ duyệt', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',   dot: '#f59e0b' },
+// Màu sắc hiển thị theo trạng thái — chỉ là style, nhãn (label) lấy từ BE.
+// Key phải khớp với enum PostStatus ở backend (Models/PostStatus.cs): Draft/Published/Archived.
+const STATUS_STYLES = {
+  Published: { color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)', dot: '#10b981' },
+  Draft:     { color: '#94a3b8', bg: 'rgba(100,116,139,0.12)', dot: '#64748b' },
+  Archived:  { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',   dot: '#f59e0b' },
 };
-
-const STATUS_API = {
-  Published: 1,
-  Draft:     0,
-  Review:    2,
-};
-
-// Khớp đúng thứ tự/giá trị số với enum PostCategory ở backend (Models/PostCategory.cs).
-// Không đổi số của các mục đã có — chỉ thêm mới ở cuối, để không làm lệch dữ liệu cũ.
-const CATEGORY_API = {
-  TinTuc: 0,
-  ThongBao: 1,
-  GiaoLy: 2,
-  SuyNiem: 3,
-  HoatDongDoanThe: 4,
-  LichPhungVu: 5,
-  CaoPho: 6,
-  HinhAnhVideo: 7,
-  Khac: 8,
-  GioiTre: 9,
-};
-
-const CATEGORY_LABELS = {
-  TinTuc: 'Tin Tức',
-  ThongBao: 'Thông Báo',
-  GiaoLy: 'Giáo Lý',
-  SuyNiem: 'Suy Niệm',
-  HoatDongDoanThe: 'Hoạt Động Đoàn Thể',
-  LichPhungVu: 'Lịch Phụng Vụ',
-  CaoPho: 'Cáo Phó',
-  HinhAnhVideo: 'Hình Ảnh - Video',
-  Khac: 'Khác',
-  GioiTre: 'Giới Trẻ',
-};
-
-// Thứ tự hiển thị trong dropdown (theo mức độ dùng phổ biến ở giáo xứ)
-const CATEGORIES_LIST = [
-  'TinTuc', 'ThongBao', 'GioiTre', 'GiaoLy', 'SuyNiem',
-  'LichPhungVu', 'HoatDongDoanThe', 'CaoPho', 'HinhAnhVideo', 'Khac',
-].map(key => ({ key, label: CATEGORY_LABELS[key] }));
-
-const STATUSES_FILTER = [
-  { key: 'all',       label: 'Tất cả' },
-  { key: 'Published', label: 'Đã đăng' },
-  { key: 'Draft',     label: 'Bản nháp' },
-  { key: 'Review',    label: 'Chờ duyệt' },
-];
 
 const PAGE_SIZE = 8;
-const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', category: 'TinTuc', status: 'Draft' };
+const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', category: '', status: '' };
 
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -85,7 +43,7 @@ function fmtDate(d) {
    API helpers
 ════════════════════════════════ */
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/posts${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/posts${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -130,9 +88,13 @@ function Toast({ toasts }) {
 /* ════════════════════════════════
    Modal
 ════════════════════════════════ */
-function PostModal({ mode, initial, onClose, onSave }) {
+function PostModal({ mode, initial, onClose, onSave, categoriesList, statusesList }) {
   const isEdit = mode === 'edit';
-  const [form, setForm]       = useState(initial ?? EMPTY_FORM);
+  const [form, setForm]       = useState(initial ?? {
+    ...EMPTY_FORM,
+    category: categoriesList[0]?.key ?? '',
+    status: statusesList.find(s => s.key === 'Draft')?.key ?? statusesList[0]?.key ?? '',
+  });
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -236,7 +198,7 @@ function PostModal({ mode, initial, onClose, onSave }) {
               value={form.category}
               onChange={e => set('category', e.target.value)}
             >
-              {CATEGORIES_LIST.map(cat => (
+              {categoriesList.map(cat => (
                 <option key={cat.key} value={cat.key}>{cat.label}</option>
               ))}
             </select>
@@ -333,9 +295,9 @@ function PostModal({ mode, initial, onClose, onSave }) {
                 value={form.status}
                 onChange={e => set('status', e.target.value)}
               >
-                <option value="Draft">Bản nháp</option>
-                <option value="Published">Xuất bản</option>
-                <option value="Review">Chờ duyệt</option>
+                {statusesList.map(s => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
               </select>
             </div>
           )}
@@ -389,6 +351,19 @@ function PostModal({ mode, initial, onClose, onSave }) {
    Main page
 ════════════════════════════════ */
 export default function PostsPage() {
+  const { user: currentUser } = useAuth();
+  const { enums } = useEnumOptions();
+  const categoriesList = enums.postCategories;
+  const statusesList = enums.postStatuses;
+  const categoryValueByKey = toValueMapByKey(categoriesList);
+  const categoryLabelByKey = toLabelMapByKey(categoriesList);
+  const statusValueByKey = toValueMapByKey(statusesList);
+  const statusLabelByKey = toLabelMapByKey(statusesList);
+  const statusesFilter = [
+    { key: 'all', label: 'Tất cả' },
+    ...statusesList.map(s => ({ key: s.key, label: s.label })),
+  ];
+
   const [posts, setPosts]         = useState([]);
   const [totalCount, setTotal]    = useState(0);
   const [totalPages, setTotalPg]  = useState(1);
@@ -450,9 +425,9 @@ export default function PostsPage() {
       content:      formData.content,
       thumbnailUrl: formData.thumbnailUrl || null,
       coverImageUrl: null,
-      category:     CATEGORY_API[formData.category] ?? 0,
-      status:       STATUS_API[formData.status] ?? 0,
-      ...(editId ? {} : { authorId: AUTHOR_ID }),
+      category:     categoryValueByKey[formData.category] ?? 0,
+      status:       statusValueByKey[formData.status] ?? 0,
+      ...(editId ? {} : { authorId: currentUser?.id }),
     };
 
     try {
@@ -497,8 +472,8 @@ export default function PostsPage() {
           excerpt:      detail.excerpt,
           content:      detail.content,
           thumbnailUrl: detail.thumbnailUrl ?? '',
-          category:     CATEGORY_LABELS[detail.category] ? detail.category : 'TinTuc', // string từ API: "TinTuc" | "ThongBao" | ...
-          status:       detail.status, // string từ API: "Draft" | "Published" | "Review"
+          category:     categoryLabelByKey[detail.category] ? detail.category : (categoriesList[0]?.key ?? detail.category), // key từ API: "TinTuc" | "ThongBao" | ...
+          status:       detail.status, // key từ API: "Draft" | "Published" | "Archived"
         },
       });
     } catch (err) {
@@ -507,7 +482,7 @@ export default function PostsPage() {
   };
 
   const chipClass = (key) => {
-    const m = { all: 'activeAll', Published: 'activePublished', Draft: 'activeDraft', Review: 'activeReview' };
+    const m = { all: 'activeAll', Published: 'activePublished', Draft: 'activeDraft', Archived: 'activeReview' };
     return styles[m[key]] ?? '';
   };
 
@@ -523,6 +498,8 @@ export default function PostsPage() {
           initial={modal.mode === 'edit' ? modal.post : undefined}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          categoriesList={categoriesList}
+          statusesList={statusesList}
         />
       )}
 
@@ -554,7 +531,7 @@ export default function PostsPage() {
           </div>
           <div className={styles.toolbarDivider} />
           <div className={styles.chips}>
-            {STATUSES_FILTER.map(s => (
+            {statusesFilter.map(s => (
               <button
                 key={s.key}
                 className={`${styles.chip} ${activeSt === s.key ? chipClass(s.key) : ''}`}
@@ -594,7 +571,8 @@ export default function PostsPage() {
           ) : posts.length === 0 ? (
             <div className={styles.tableEmpty}>Không tìm thấy bài viết phù hợp.</div>
           ) : posts.map((post, i) => {
-            const sc = STATUS_CONFIG[post.status] ?? STATUS_CONFIG['Draft'];
+            const style = STATUS_STYLES[post.status] ?? STATUS_STYLES['Draft'];
+            const statusLabel = statusLabelByKey[post.status] ?? post.status;
             return (
               <div key={post.id} className={styles.tableRow} style={{ animationDelay: `${i * 30}ms` }}>
                 <input
@@ -614,9 +592,9 @@ export default function PostsPage() {
                 <div className={styles.dateCell}>{fmtDate(post.createdAt)}</div>
                 <div className={styles.statCell}>{post.commentCount}</div>
                 <div>
-                  <span className={styles.statusPill} style={{ background: sc.bg, color: sc.color }}>
-                    <span className={styles.statusDot} style={{ background: sc.dot }} />
-                    {sc.label}
+                  <span className={styles.statusPill} style={{ background: style.bg, color: style.color }}>
+                    <span className={styles.statusDot} style={{ background: style.dot }} />
+                    {statusLabel}
                   </span>
                 </div>
                 <div className={styles.rowActions}>

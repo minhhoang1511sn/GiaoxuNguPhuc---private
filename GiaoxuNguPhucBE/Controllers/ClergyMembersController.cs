@@ -1,6 +1,7 @@
 using GiaoxuNguPhucBE.DTOs;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GiaoxuNguPhucBE.Controllers
@@ -23,6 +24,7 @@ namespace GiaoxuNguPhucBE.Controllers
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/clergy-members/admin - Toàn bộ danh sách (kể cả các niên khóa trước)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<List<ClergyMemberDto>>> GetAll()
         {
@@ -31,6 +33,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>GET /api/clergy-members/admin/{id} - Chi tiết một thành viên</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<ClergyMemberDto>> GetById(int id)
         {
@@ -42,6 +45,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>POST /api/clergy-members/admin - Thêm mới thành viên</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("admin")]
         public async Task<ActionResult<ClergyMemberDto>> Create([FromBody] CreateClergyMemberDto dto)
         {
@@ -53,6 +57,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>PUT /api/clergy-members/admin/{id} - Sửa thông tin thành viên</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("admin/{id:int}")]
         public async Task<ActionResult<ClergyMemberDto>> Update(int id, [FromBody] UpdateClergyMemberDto dto)
         {
@@ -67,6 +72,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>DELETE /api/clergy-members/admin/{id} - Xoá thành viên</summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("admin/{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {

@@ -16,6 +16,8 @@
         DateTime? PublishedAt,
         string AuthorName,
         string? AuthorAvatar,
+        int? MinistryId,
+        string? MinistryName,
         DateTime CreatedAt,
         DateTime UpdatedAt,
         int CommentCount

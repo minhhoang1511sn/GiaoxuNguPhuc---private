@@ -1,7 +1,10 @@
 "use client";
 import './Footer.css';
 import { FaChurch } from 'react-icons/fa';
+import { useContactInfo } from '@/app/lib/useContactInfo';
+
 function Footer() {
+  const { contact, loading } = useContactInfo();
   return (
     <footer className="footer">
       <div className="footer-container">
@@ -12,7 +15,7 @@ function Footer() {
               <div className="logo-icon">
                 <FaChurch size={20} />
               </div>
-              Giáo xứ Ngũ Phúc
+              {contact.parishName || 'Giáo xứ Ngũ Phúc'}
             </div>
             <p className="footer-description">
               Cộng đoàn chào đón, tận tâm với đức tin, phục vụ và rao giảng Tin Mừng.
@@ -45,9 +48,15 @@ function Footer() {
           <div className="footer-section">
             <h4 className="footer-title">Liên hệ</h4>
             <ul className="footer-contact">
-              <li>Hố Nai 3, Trảng Bom, Đồng Nai</li>
-              <li>(028) 3845 6789</li>
-              <li>giaoxu@nguphuc.org</li>
+              {loading ? (
+                <li>Đang tải…</li>
+              ) : (
+                <>
+                  {contact.address && <li>{contact.address}</li>}
+                  {contact.phone && <li>{contact.phone}</li>}
+                  {contact.email && <li>{contact.email}</li>}
+                </>
+              )}
             </ul>
           </div>
 
@@ -55,23 +64,22 @@ function Footer() {
           <div className="footer-section">
             <h4 className="footer-title">Giờ Thánh Lễ</h4>
             <div className="footer-hours">
-              <p>Thứ 2 - Thứ 4 - Thứ 6: 4:30</p>
-              <p>Thứ 3 - Thứ 5: 4:30 - 18:00</p>
-              <p>Thứ 7: 4:30 - 18:00</p>
-              <p>Chúa nhật: 4:30 - 7h30 -17:00</p>
+              {(contact.massSchedule || '').split('|').filter(Boolean).map((line) => (
+                <p key={line}>{line.trim()}</p>
+              ))}
             </div>
             <h4 className="footer-title">Giờ văn phòng</h4>
             <div className="footer-hours">
-              <p>Thứ 2 - Thứ 6: 8:00 - 17:00</p>
-              <p>Thứ 7: 8:00 - 12:00</p>
-              <p>Chúa nhật: Đóng cửa</p>
+              {(contact.officeHours || '').split('|').filter(Boolean).map((line) => (
+                <p key={line}>{line.trim()}</p>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="footer-bottom">
-          <p>© 2023 Giáo xứ Ngũ Phúc. Bảo lưu mọi quyền.</p>
+          <p>© {new Date().getFullYear()} {contact.parishName || 'Giáo xứ Ngũ Phúc'}. Bảo lưu mọi quyền.</p>
           <div className="footer-bottom-links">
             <a href="/privacy">Chính sách bảo mật</a>
             <a href="/terms">Điều khoản dịch vụ</a>

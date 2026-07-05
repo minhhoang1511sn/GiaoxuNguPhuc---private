@@ -45,5 +45,11 @@ namespace GiaoxuNguPhucBE.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>Các tài khoản (role User) trực thuộc đoàn thể này</summary>
+        public ICollection<User> Members { get; set; } = new List<User>();
+
+        /// <summary>Các bài viết đăng cho/bởi đoàn thể này</summary>
+        public ICollection<Post> Posts { get; set; } = new List<Post>();
     }
 }

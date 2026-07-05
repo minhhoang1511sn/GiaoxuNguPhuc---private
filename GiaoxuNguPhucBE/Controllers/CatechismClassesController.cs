@@ -1,6 +1,7 @@
 using GiaoxuNguPhucBE.DTOs;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GiaoxuNguPhucBE.Controllers
@@ -23,6 +24,7 @@ namespace GiaoxuNguPhucBE.Controllers
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/catechism-classes/admin - Toàn bộ danh sách khóa học (kể cả đang ẩn)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<List<CatechismClassDto>>> GetAll()
         {
@@ -31,6 +33,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>GET /api/catechism-classes/admin/{id} - Chi tiết một khóa học</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<CatechismClassDto>> GetById(int id)
         {
@@ -42,6 +45,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>POST /api/catechism-classes/admin - Thêm mới khóa học</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("admin")]
         public async Task<ActionResult<CatechismClassDto>> Create([FromBody] CreateCatechismClassDto dto)
         {
@@ -53,6 +57,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>PUT /api/catechism-classes/admin/{id} - Sửa thông tin khóa học</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("admin/{id:int}")]
         public async Task<ActionResult<CatechismClassDto>> Update(int id, [FromBody] UpdateCatechismClassDto dto)
         {
@@ -67,6 +72,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>DELETE /api/catechism-classes/admin/{id} - Xoá khóa học</summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("admin/{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {

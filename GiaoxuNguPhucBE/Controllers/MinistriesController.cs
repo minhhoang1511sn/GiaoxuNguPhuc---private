@@ -1,6 +1,7 @@
 using GiaoxuNguPhucBE.DTOs;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Respone;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GiaoxuNguPhucBE.Controllers
@@ -23,6 +24,7 @@ namespace GiaoxuNguPhucBE.Controllers
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/ministries/admin - Toàn bộ danh sách (kể cả ngưng hoạt động)</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin")]
         public async Task<ActionResult<List<MinistryDto>>> GetAll()
         {
@@ -31,6 +33,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>GET /api/ministries/admin/{id} - Chi tiết một đoàn thể</summary>
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/{id:int}")]
         public async Task<ActionResult<MinistryDto>> GetById(int id)
         {
@@ -42,6 +45,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>POST /api/ministries/admin - Thêm mới đoàn thể</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("admin")]
         public async Task<ActionResult<MinistryDto>> Create([FromBody] CreateMinistryDto dto)
         {
@@ -53,6 +57,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>PUT /api/ministries/admin/{id} - Sửa thông tin đoàn thể</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPut("admin/{id:int}")]
         public async Task<ActionResult<MinistryDto>> Update(int id, [FromBody] UpdateMinistryDto dto)
         {
@@ -67,6 +72,7 @@ namespace GiaoxuNguPhucBE.Controllers
         }
 
         /// <summary>DELETE /api/ministries/admin/{id} - Xoá đoàn thể</summary>
+        [Authorize(Roles = "Admin")]
         [HttpDelete("admin/{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {

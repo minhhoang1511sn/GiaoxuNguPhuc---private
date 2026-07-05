@@ -10,6 +10,8 @@ namespace GiaoxuNguPhucBE.DTOs
         [Required, MinLength(10)] string Content,
         string? ThumbnailUrl,
         string? CoverImageUrl,
+        /// <summary>Chỉ Admin mới có thể chỉ định tác giả khác chính mình; với tài khoản
+        /// role User, BE luôn ghi đè bằng chính tài khoản đang đăng nhập, bỏ qua giá trị này.</summary>
         int AuthorId,
         PostCategory Category = PostCategory.TinTuc,
         string? Tags = null,
@@ -21,6 +23,9 @@ namespace GiaoxuNguPhucBE.DTOs
         string? MetaTitle = null,
         string? MetaDescription = null,
         /// <summary>Tuỳ chọn: tự đặt slug riêng, nếu để trống sẽ tự sinh từ Title</summary>
-        string? Slug = null
+        string? Slug = null,
+        /// <summary>Đoàn thể sở hữu bài viết. Chỉ Admin có thể tự chọn (hoặc để trống = bài chung);
+        /// với tài khoản role User, BE luôn ghi đè bằng đoàn thể của chính tài khoản đó.</summary>
+        int? MinistryId = null
     );
 }

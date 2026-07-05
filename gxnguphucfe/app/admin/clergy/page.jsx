@@ -3,31 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './clergy.module.css';
 import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
+import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
+import { authFetch } from '@/app/lib/authClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
-
-// Khớp đúng giá trị số với enum ClergyType ở backend (Models/ClergyType.cs).
-// Không đổi số của mục đã có.
-const TYPE_API = {
-  LinhMuc: 0,
-  ThayXu: 1,
-  TuSi: 2,
-  GiaoDan: 3,
-};
-
-const TYPE_LABELS = {
-  LinhMuc: 'Linh mục',
-  ThayXu: 'Thầy xứ / Phó tế',
-  TuSi: 'Tu sĩ (Sr.)',
-  GiaoDan: 'Giáo dân phụ trách',
-};
-
-const TYPES_LIST = Object.keys(TYPE_API).map((key) => ({
-  key,
-  value: TYPE_API[key],
-  label: TYPE_LABELS[key],
-}));
 
 const STATUSES_FILTER = [
   { key: 'all', label: 'Tất cả' },
@@ -37,7 +17,7 @@ const STATUSES_FILTER = [
 
 const EMPTY_FORM = {
   fullName: '',
-  type: 'LinhMuc',
+  type: '',
   position: '',
   ministryName: '',
   schoolYear: '',
@@ -53,7 +33,7 @@ const EMPTY_FORM = {
    API helpers
 ════════════════════════════════ */
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/clergy-members${path}`, {
+  const res = await authFetch(`${BASE_URL}/api/clergy-members${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -89,9 +69,9 @@ function Toast({ toasts }) {
 /* ════════════════════════════════
    Modal
 ════════════════════════════════ */
-function ClergyModal({ mode, initial, onClose, onSave }) {
+function ClergyModal({ mode, initial, onClose, onSave, typesList }) {
   const isEdit = mode === 'edit';
-  const [form, setForm] = useState(initial ?? EMPTY_FORM);
+  const [form, setForm] = useState(initial ?? { ...EMPTY_FORM, type: typesList[0]?.key ?? '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -189,7 +169,7 @@ function ClergyModal({ mode, initial, onClose, onSave }) {
               value={form.type}
               onChange={(e) => set('type', e.target.value)}
             >
-              {TYPES_LIST.map((t) => (
+              {typesList.map((t) => (
                 <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
@@ -364,6 +344,11 @@ function ClergyModal({ mode, initial, onClose, onSave }) {
    Main page
 ════════════════════════════════ */
 export default function ClergyPage() {
+  const { enums } = useEnumOptions();
+  const typesList = enums.clergyTypes;
+  const typeLabelByKey = toLabelMapByKey(typesList);
+  const typeValueByKey = toValueMapByKey(typesList);
+
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -410,7 +395,7 @@ export default function ClergyPage() {
   const handleSave = async (formData, editId) => {
     const payload = {
       fullName: formData.fullName.trim(),
-      type: TYPE_API[formData.type] ?? 0,
+      type: typeValueByKey[formData.type] ?? 0,
       position: formData.position.trim(),
       ministryName: formData.ministryName?.trim() || null,
       schoolYear: formData.schoolYear?.trim() || null,
@@ -485,6 +470,7 @@ export default function ClergyPage() {
           initial={modal.mode === 'edit' ? modal.member : undefined}
           onClose={() => setModal(null)}
           onSave={handleSave}
+          typesList={typesList}
         />
       )}
 
@@ -531,7 +517,7 @@ export default function ClergyPage() {
             onChange={(e) => setActiveType(e.target.value)}
           >
             <option value="all">Tất cả phân loại</option>
-            {TYPES_LIST.map((t) => (
+            {typesList.map((t) => (
               <option key={t.key} value={t.key}>{t.label}</option>
             ))}
           </select>
@@ -562,7 +548,7 @@ export default function ClergyPage() {
                   <div className={styles.postAuthor} title={member.position}>{member.position}</div>
                 </div>
               </div>
-              <div className={styles.dateCell}>{TYPE_LABELS[member.typeName] ?? member.typeName}</div>
+              <div className={styles.dateCell}>{typeLabelByKey[member.typeName] ?? member.typeName}</div>
               <div className={styles.dateCell}>{member.ministryName || '—'}</div>
               <div className={styles.dateCell}>{member.schoolYear || 'Không rõ'}</div>
               <div>

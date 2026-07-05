@@ -1,12 +1,17 @@
 ﻿namespace GiaoxuNguPhucBE.DTOs
 {
-
+    /// <summary>Thông tin công khai của 1 tài khoản — dùng cho login, /account/me, và trang quản lý tài khoản.</summary>
     public record UserDto(
         int Id,
-        string Name,
+        string FullName,
         string Email,
         string? AvatarUrl,
         string Role,
-        DateTime CreatedAt
+        int? MinistryId,
+        string? MinistryName,
+        bool IsActive,
+        DateTime? LastLoginAt,
+        DateTime CreatedAt,
+        string ApprovalStatus
     );
 }
