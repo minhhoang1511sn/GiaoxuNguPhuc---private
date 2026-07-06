@@ -188,6 +188,9 @@ export default function AdminLayout({ children }) {
             {menuItems.flatMap((g) => g.items).find((i) => i.href === pathname)?.label ?? 'Dashboard'}
           </h1>
           <div className={styles.topbarRight}>
+            <Link href="/" className={styles.backToSiteBtn} title="Về trang người dùng">
+              <span aria-hidden="true">↩</span> Về trang người dùng
+            </Link>
             <div className={styles.topbarTime}>{dateStr}</div>
             <span className={styles.topbarUserName}>{user.fullName}</span>
             <div className={styles.adminAvatar} title={user.email}>{avatarLetter}</div>

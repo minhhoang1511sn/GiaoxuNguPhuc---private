@@ -178,6 +178,10 @@
 .quick-action-item {
   text-align: center;
   padding: 20px 10px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  cursor: pointer;
 }
 
 .quick-action-item span {

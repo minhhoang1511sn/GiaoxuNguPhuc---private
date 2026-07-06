@@ -53,6 +53,22 @@
   color: #137fec;
 }
 
+.navAdminLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #137fec !important;
+  background: #e6f0ff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700 !important;
+}
+
+.navAdminLink:hover {
+  background: #137fec;
+  color: white !important;
+}
+
 /* Actions */
 .actions {
   display: flex;

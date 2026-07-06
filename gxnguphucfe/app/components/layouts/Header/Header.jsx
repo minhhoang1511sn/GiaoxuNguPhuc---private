@@ -57,6 +57,18 @@ function Header() {
           <Link href="/library">Thư viện</Link>
           <Link href="/register">Đăng ký</Link>
           <Link href="/contact">Liên hệ</Link>
+
+          {/* Đã đăng nhập -> hiện thẳng link tới khu vực quản trị trên nav chính,
+              không phải mở dropdown mới thấy. Admin vào /admin (toàn quyền),
+              tài khoản đoàn thể vào /admin/post (chỉ quản lý bài viết của mình). */}
+          {!loading && isAuthenticated && (
+            <Link
+              href={isAdmin ? '/admin' : canManageMinistryPosts ? '/admin/post' : '/admin'}
+              className={styles.navAdminLink}
+            >
+              <MdDashboard size={16} /> {isAdmin ? 'Trang quản trị' : canManageMinistryPosts ? 'Quản lý bài viết' : 'Trang quản trị'}
+            </Link>
+          )}
         </nav>
 
         {/* Actions */}
