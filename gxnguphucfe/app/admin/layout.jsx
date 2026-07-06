@@ -12,7 +12,6 @@ const fullMenuItems = [
     items: [
       { href: '/admin', icon: '▪', label: 'Tổng quan' },
       { href: '/admin/post', icon: '✦', label: 'Bài viết', badge: '' },
-      { href: '/admin/comment', icon: '◈', label: 'Bình luận', badge: '' },
     ],
   },
   {
@@ -35,8 +34,6 @@ const fullMenuItems = [
     group: 'Hệ thống',
     items: [
       { href: '/admin/contact-info', icon: '☏', label: 'Thông tin liên hệ' },
-      { href: '/admin/luot-xem', icon: '◐', label: 'Đếm lượt xem' },
-      { href: '/admin/notification', icon: '◑', label: 'Thông báo', badge: '' },
     ],
   },
 ];
