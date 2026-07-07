@@ -33,7 +33,7 @@ const STATUS_STYLES = {
 };
 
 const PAGE_SIZE = 8;
-const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', category: '', status: '' };
+const EMPTY_FORM = { icon: '✦', title: '', excerpt: '', content: '', thumbnailUrl: '', category: '', status: '', eventDate: '', isFeatured: false, isPinned: false };
 
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -202,6 +202,43 @@ function PostModal({ mode, initial, onClose, onSave, categoriesList, statusesLis
                 <option key={cat.key} value={cat.key}>{cat.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Event date — dùng cho mục "Sự kiện sắp tới" ở trang chủ */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Ngày diễn ra sự kiện</label>
+            <input
+              type="date"
+              className={styles.fieldInput}
+              value={form.eventDate}
+              onChange={e => set('eventDate', e.target.value)}
+            />
+            <span className={styles.errorMsg} style={{ color: '#94a3b8' }}>
+              Nhập ngày trong tương lai để bài viết hiện ở mục "Sự kiện sắp tới" trên trang chủ. Để trống nếu bài viết không phải sự kiện.
+            </span>
+          </div>
+
+          {/* Featured / Pinned — quyết định bài viết có hiện ở trang chủ hay không */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Hiển thị trang chủ</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.8125rem' }}>
+                <input
+                  type="checkbox"
+                  checked={form.isFeatured}
+                  onChange={e => set('isFeatured', e.target.checked)}
+                />
+                Bài nổi bật (hiện ở mục "Tin tức mới" trang chủ)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.8125rem' }}>
+                <input
+                  type="checkbox"
+                  checked={form.isPinned}
+                  onChange={e => set('isPinned', e.target.checked)}
+                />
+                Ghim bài viết (ưu tiên hiển thị lên đầu danh sách)
+              </label>
+            </div>
           </div>
 
           {/* Title */}
@@ -427,6 +464,9 @@ export default function PostsPage() {
       coverImageUrl: null,
       category:     categoryValueByKey[formData.category] ?? 0,
       status:       statusValueByKey[formData.status] ?? 0,
+      isFeatured:   !!formData.isFeatured,
+      isPinned:     !!formData.isPinned,
+      eventDate:    formData.eventDate ? new Date(formData.eventDate).toISOString() : null,
       ...(editId ? {} : { authorId: currentUser?.id }),
     };
 
@@ -474,6 +514,9 @@ export default function PostsPage() {
           thumbnailUrl: detail.thumbnailUrl ?? '',
           category:     categoryLabelByKey[detail.category] ? detail.category : (categoriesList[0]?.key ?? detail.category), // key từ API: "TinTuc" | "ThongBao" | ...
           status:       detail.status, // key từ API: "Draft" | "Published" | "Archived"
+          eventDate:    detail.eventDate ? detail.eventDate.slice(0, 10) : '', // ISO -> "yyyy-MM-dd" cho input type="date"
+          isFeatured:   !!detail.isFeatured,
+          isPinned:     !!detail.isPinned,
         },
       });
     } catch (err) {

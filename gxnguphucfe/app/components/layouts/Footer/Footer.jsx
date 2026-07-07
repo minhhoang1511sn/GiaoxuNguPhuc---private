@@ -1,6 +1,6 @@
 "use client";
 import './Footer.css';
-import { FaChurch } from 'react-icons/fa';
+import Image from 'next/image'; // Import thẻ Image của Next.js
 import { useContactInfo } from '@/app/lib/useContactInfo';
 
 function Footer() {
@@ -13,9 +13,17 @@ function Footer() {
           <div className="footer-section">
             <div className="footer-brand">
               <div className="logo-icon">
-                <FaChurch size={20} />
+                <Image 
+                  src="/images/logo.jpg" 
+                  alt="Logo Giáo xứ Ngũ Phúc" 
+                  width={44} 
+                  height={44} 
+                  className="footer-logo-image" 
+                />
               </div>
-              {contact.parishName || 'Giáo xứ Ngũ Phúc'}
+              <span className="footer-brand-text">
+                {contact.parishName || 'Giáo xứ Ngũ Phúc'}
+              </span>
             </div>
             <p className="footer-description">
               Cộng đoàn chào đón, tận tâm với đức tin, phục vụ và rao giảng Tin Mừng.

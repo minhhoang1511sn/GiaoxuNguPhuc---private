@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './Home.css';
 import { useContactInfo } from '@/app/lib/useContactInfo';
+import { useHomeSlides } from '@/app/lib/useHomeSlides';
 import { resolveImageUrl } from '@/app/lib/uploadImage';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
@@ -52,16 +53,24 @@ async function safeGetPosts(query) {
   }
 }
 
+// Ảnh slideshow mặc định, dùng khi admin chưa cấu hình ảnh nào ở trang quản trị Banner
+const DEFAULT_SLIDES = ['/images/slider1.JPG', '/images/slider2.JPG', '/images/slider3.JPG'];
+
 export default function Home() {
-  const slides = ['/images/slider1.JPG', '/images/slider2.JPG', '/images/slider3.JPG'];
+  const { slides: slideData } = useHomeSlides();
+  const slides = slideData.length > 0 ? slideData.map((s) => s.imageUrl) : DEFAULT_SLIDES;
   const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    setCurrent(0);
+  }, [slides.length]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent((c) => (c + 1) % slides.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   const { contact, loading: contactLoading } = useContactInfo();
 
@@ -78,25 +87,33 @@ export default function Home() {
       setPostsLoading(true);
       setPostsError('');
 
-      const [featuredData, announcementData, recentData] = await Promise.all([
+      const [featuredData, recentData] = await Promise.all([
         safeGetPosts('/featured?take=3'),
-        safeGetPosts('?page=1&pageSize=3&category=ThongBao&sortBy=publishedAt&sortOrder=desc'),
-        // Lấy 1 lô bài viết gần đây để tự lọc ra bài có EventDate trong tương lai
-        // (BE chưa có tham số lọc/sắp xếp riêng theo EventDate).
+        // Lấy 1 lô bài viết gần đây (mọi chuyên mục) để dùng chung cho cả 2 mục:
+        // "Thông báo Giáo xứ" (hoạt động mới nhất) và "Sự kiện sắp tới" (lọc theo EventDate).
         safeGetPosts('?page=1&pageSize=30&sortBy=publishedAt&sortOrder=desc'),
       ]);
 
       if (!alive) return;
 
-      if (!featuredData && !announcementData && !recentData) {
+      if (!featuredData && !recentData) {
         setPostsError('Không thể tải dữ liệu từ máy chủ. Vui lòng thử lại sau.');
       }
 
       setLatestPosts(Array.isArray(featuredData) ? featuredData : featuredData?.items ?? []);
-      setAnnouncementPosts(announcementData?.items ?? []);
+
+      const recentItems = recentData?.items ?? [];
+
+      // Thông báo Giáo xứ: hoạt động mới nhất của giáo xứ (không giới hạn chuyên mục),
+      // bài ghim (IsPinned) được ưu tiên lên đầu, còn lại xếp theo ngày đăng mới nhất.
+      const latestActivity = [...recentItems].sort((a, b) => {
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt);
+      });
+      setAnnouncementPosts(latestActivity.slice(0, 3));
 
       const now = Date.now();
-      const events = (recentData?.items ?? [])
+      const events = recentItems
         .filter((p) => p.eventDate && new Date(p.eventDate).getTime() >= now)
         .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate))
         .slice(0, 3);
@@ -158,13 +175,6 @@ export default function Home() {
         <div className="quick-actions-overlay">
           <div className="quick-actions-wrapper">
             <div className="quick-grid">
-              <Link href="/library" className="quick-action-item">
-                <div className="quick-icon bg-blue">
-                  <i className="bi bi-book-half"></i>
-                </div>
-                <span>Sách ngày</span>
-              </Link>
-
               <Link href="/calendar" className="quick-action-item">
                 <div className="quick-icon bg-green">
                   <i className="bi bi-calendar3"></i>
@@ -306,6 +316,14 @@ export default function Home() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                           <span style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%', display: 'inline-block' }}></span>
                           <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', margin: 0 }}>{p.title}</h3>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '16px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#d97706', backgroundColor: '#fef3c7', padding: '2px 8px', borderRadius: '999px' }}>
+                            {CATEGORY_LABEL[p.category] ?? p.category ?? 'Khác'}
+                          </span>
+                          {p.isPinned && (
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#b45309' }}>📌 Đã ghim</span>
+                          )}
                         </div>
                         <p style={{ fontSize: '15px', color: '#666', margin: 0, paddingLeft: '16px' }}>{p.excerpt}</p>
                       </Link>

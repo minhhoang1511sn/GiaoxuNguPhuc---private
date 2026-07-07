@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import styles from './layout.module.css';
 import { useAuth } from '@/app/contexts/AuthContext';
+import Image from 'next/image'; // Import thẻ Image của Next.js
+import { resolveImageUrl } from '@/app/lib/uploadImage';
 
 const fullMenuItems = [
   {
@@ -12,6 +14,7 @@ const fullMenuItems = [
     items: [
       { href: '/admin', icon: '▪', label: 'Tổng quan' },
       { href: '/admin/post', icon: '✦', label: 'Bài viết', badge: '' },
+      { href: '/admin/banners', icon: '◈', label: 'Banners', badge: '' },
     ],
   },
   {
@@ -28,12 +31,19 @@ const fullMenuItems = [
       { href: '/admin/clergy', icon: '◇', label: 'Giáo sĩ', badge: '' },
       { href: '/admin/history', icon: '❖', label: 'Lược sử giáo xứ', badge: '' },
       { href: '/admin/ministry', icon: '❋', label: 'Đoàn thể', badge: '' },
+      { href: '/admin/lich-le', icon: '📅', label: 'Lịch lễ riêng', badge: '' },
     ],
   },
   {
     group: 'Hệ thống',
     items: [
       { href: '/admin/contact-info', icon: '☏', label: 'Thông tin liên hệ' },
+    ],
+  },
+  {
+    group: 'Tài khoản',
+    items: [
+      { href: '/admin/profile', icon: '⚙', label: 'Hồ sơ của tôi', badge: '' },
     ],
   },
 ];
@@ -47,6 +57,12 @@ const ministryMenuItems = [
     items: [
       { href: '/admin', icon: '▪', label: 'Tổng quan' },
       { href: '/admin/post', icon: '✦', label: 'Bài viết', badge: '' },
+    ],
+  },
+  {
+    group: 'Tài khoản',
+    items: [
+      { href: '/admin/profile', icon: '⚙', label: 'Hồ sơ của tôi', badge: '' },
     ],
   },
 ];
@@ -114,8 +130,17 @@ export default function AdminLayout({ children }) {
       <aside className={`${styles.adminSidebar} ${collapsed ? styles.collapsed : ''}`}>
 
         {/* Logo */}
+        {/* Logo */}
         <div className={styles.sidebarLogo}>
-          <div className={styles.logoMark}>✝</div>
+          <div className={styles.logoIconWrap}>
+            <Image
+              src="/images/logo.jpg"
+              alt="Logo Giáo xứ Ngũ Phúc"
+              width={40}
+              height={40}
+              className={styles.logoImage}
+            />
+          </div>
           {!collapsed && (
             <div>
               <span className={styles.logoTitle}>Ngũ Phúc</span>
@@ -189,8 +214,16 @@ export default function AdminLayout({ children }) {
               <span aria-hidden="true">↩</span> Về trang người dùng
             </Link>
             <div className={styles.topbarTime}>{dateStr}</div>
-            <span className={styles.topbarUserName}>{user.fullName}</span>
-            <div className={styles.adminAvatar} title={user.email}>{avatarLetter}</div>
+            <Link href="/admin/profile" className={styles.topbarUserLink} title="Hồ sơ của tôi">
+              <span className={styles.topbarUserName}>{user.fullName}</span>
+              <div className={styles.adminAvatar} title={user.email}>
+                {user.avatarUrl ? (
+                  <Image src={resolveImageUrl(user.avatarUrl)} alt={user.fullName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
+                ) : (
+                  avatarLetter
+                )}
+              </div>
+            </Link>
           </div>
         </header>
 

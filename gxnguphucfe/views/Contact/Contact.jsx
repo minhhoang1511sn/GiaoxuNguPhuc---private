@@ -3,6 +3,7 @@
 import { useState } from "react";
 import "./Contact.css";
 import { useContactInfo } from "@/app/lib/useContactInfo";
+import { usePageBanner } from "@/app/lib/usePageBanner";
 
 const ICONS = {
   address: (
@@ -37,6 +38,7 @@ const subjectOptions = [
 
 export default function ContactPage() {
   const { contact, loading } = useContactInfo();
+  const { bannerUrl } = usePageBanner("contact");
 
   const [form, setForm] = useState({
     name: "",
@@ -105,7 +107,12 @@ export default function ContactPage() {
 
       {/* Hero */}
       <div className="contact-hero-wrap">
-        <div className="contact-hero">
+        <div
+          className="contact-hero"
+          style={bannerUrl ? {
+            backgroundImage: `linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 100%), url('${bannerUrl}')`,
+          } : undefined}
+        >
           <h1 className="contact-hero-title">Liên hệ</h1>
           <p className="contact-hero-sub">
             Kết nối với cộng đoàn {contact.parishName || "Giáo xứ Ngũ Phúc"}. Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn.

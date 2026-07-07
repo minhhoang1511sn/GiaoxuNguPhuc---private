@@ -75,7 +75,7 @@
   gap: 12px;
 }
 
-.actions button {
+.actions > button {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -88,12 +88,7 @@
   justify-content: center;
 }
 
-.menu {
-  background: transparent !important;
-  color: #333 !important;
-}
-
-.actions button svg {
+.actions > button svg {
   display: block;
 }
 
@@ -115,36 +110,80 @@
   justify-content: center;
   font-weight: 700;
   font-size: 15px;
+  overflow: hidden;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .userDropdown {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  min-width: 240px;
+  min-width: 260px;
   background: white;
   border: 1px solid #eee;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
   overflow: hidden;
   z-index: 200;
+  padding: 6px;
 }
 
 .userDropdownHeader {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+}
+
+.userDropdownAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #137fec;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.userDropdownInfo {
+  min-width: 0;
 }
 
 .userDropdownName {
   font-weight: 700;
   font-size: 14px;
   color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .userDropdownRole {
   font-size: 12px;
   color: #888;
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userDropdownDivider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 4px 6px;
 }
 
 .userDropdownItem {
@@ -152,7 +191,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: none;
   background: none;
   color: #333;
@@ -161,9 +200,59 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .userDropdownItem:hover {
   background: #f7f9fc;
   color: #137fec;
+}
+
+.userDropdownLogout {
+  color: #e11d48;
+}
+
+.userDropdownLogout:hover {
+  background: #fef2f4;
+  color: #e11d48;
+}
+
+/* =========================================
+   Cụm Logo
+========================================= */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Khoảng cách giữa logo và chữ */
+  text-decoration: none; /* Dùng nếu bạn bọc bằng thẻ <Link> */
+  cursor: pointer;
+}
+
+.logoIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* Cắt gọn gàng các viền thừa của ảnh */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); /* Bóng đổ nhẹ tạo độ sâu */
+  border: 1px solid #f3f4f6; /* Viền mờ giúp logo tách biệt khỏi nền */
+}
+
+/* Class dành riêng cho thẻ Image của Next.js */
+.logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Đảm bảo ảnh lấp đầy vòng tròn mà không bị méo */
+}
+
+.logoText {
+  font-size: 1.25rem; /* ~20px */
+  font-weight: 700;
+  color: #111827; /* Màu đen xám hiện đại, đỡ gắt hơn đen tuyền */
+  letter-spacing: -0.01em; /* Khoảng cách chữ gọn lại một chút */
+  white-space: nowrap; /* Tránh việc chữ bị rớt dòng khi thu nhỏ màn hình */
 }

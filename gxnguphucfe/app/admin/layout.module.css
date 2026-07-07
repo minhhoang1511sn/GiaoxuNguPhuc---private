@@ -288,11 +288,29 @@
   font-weight: 700;
   color: #0f1117;
   cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .topbarUserName {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.topbarUserLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+.topbarUserLink:hover {
+  background: rgba(110, 231, 183, 0.08);
+}
+.topbarUserLink:hover .topbarUserName {
+  color: var(--text-primary);
 }
 
 .authGate {
@@ -509,4 +527,30 @@
   border: 1px solid rgba(220, 38, 38, 0.2);
   border-radius: 10px;
   padding: 10px 14px;
+}
+
+/*LOGO*/
+/* Logo ảnh (thay cho logoMark chữ ✝ khi có ảnh thật) */
+.logoIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* cắt ảnh thành hình tròn */
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Khi sidebar thu gọn, giảm padding để logo tròn không bị tràn (64px - 2*12px = 40px = đúng size logo) */
+.adminSidebar.collapsed .sidebarLogo {
+  padding: 20px 12px;
+  justify-content: center;
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import "./News.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
+import { usePageBanner } from "@/app/lib/usePageBanner";
 
 /* ════════════════════════════════
    Config
@@ -72,6 +73,7 @@ const apiGetFeatured = (take = 3) => apiFetch(`/featured?take=${take}`);
    Component
 ════════════════════════════════ */
 export default function NewsPage() {
+  const { bannerUrl } = usePageBanner("news");
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -153,7 +155,12 @@ export default function NewsPage() {
   return (
     <div className="news-page">
       {/* Hero */}
-      <div className="news-hero">
+      <div
+        className={`news-hero${bannerUrl ? " news-hero--image" : ""}`}
+        style={bannerUrl ? {
+          backgroundImage: `linear-gradient(rgba(17,24,39,0.55) 0%, rgba(17,24,39,0.75) 100%), url('${bannerUrl}')`,
+        } : undefined}
+      >
         <div className="news-heroInner">
           <h1 className="news-heroTitle">Tin Tức &amp; Sự Kiện</h1>
           <p className="news-heroSub">

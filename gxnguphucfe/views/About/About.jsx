@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import "./About.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
+import { usePageBanner } from "@/app/lib/usePageBanner";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 
@@ -24,6 +25,7 @@ function toRoleEn(typeName) {
 }
 
 export default function AboutPage() {
+  const { bannerUrl } = usePageBanner("about");
   const [activeTab, setActiveTab] = useState("history");
   const [clergy, setClergy] = useState([]);
   const [clergyLoading, setClergyLoading] = useState(true);
@@ -79,7 +81,10 @@ export default function AboutPage() {
     <div className="about-page">
 
       {/* HERO */}
-      <div className="hero">
+      <div
+        className="hero"
+        style={bannerUrl ? { backgroundImage: `url('${bannerUrl}')` } : undefined}
+      >
         <div className="heroContent">
           <div className="heroEyebrow">Welcome to our community</div>
           <h1 className="heroTitle">Về Giáo Xứ</h1>

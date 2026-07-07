@@ -149,6 +149,21 @@
   background-color: #ffffff;
   border-bottom: 1px solid #f0f2f4;
   padding: 48px 16px;
+  background-size: cover;
+  background-position: center;
+  transition: padding 0.2s ease;
+}
+
+/* Khi admin đã cấu hình ảnh bìa: đổi sang kiểu hero có ảnh nền, chữ trắng */
+.news-hero--image {
+  border-bottom: none;
+  padding: 88px 16px;
+}
+.news-hero--image .news-heroTitle {
+  color: #ffffff;
+}
+.news-hero--image .news-heroSub {
+  color: #e2e8f0;
 }
 
 .news-heroInner {

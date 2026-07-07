@@ -19,6 +19,10 @@ namespace GiaoxuNguPhucBE.Data
         public DbSet<Ministry> Ministries { get; set; }
         public DbSet<ContactInfo> ContactInfos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<ParishCalendarEvent> ParishCalendarEvents { get; set; }
+        public DbSet<PageSetting> PageSettings { get; set; }
+        public DbSet<HomeSlide> HomeSlides { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -103,6 +107,10 @@ namespace GiaoxuNguPhucBE.Data
             modelBuilder.Entity<Ministry>()
                 .HasIndex(m => m.Category);
 
+            modelBuilder.Entity<ParishCalendarEvent>()
+          .Property(e => e.EventType)
+          .HasConversion<int>();
+
             // ContactInfo: bảng "singleton" chỉ có 1 bản ghi (Id = 1) lưu thông tin
             // liên hệ giáo xứ, không cần thêm index vì luôn truy vấn theo khoá chính.
 
@@ -121,6 +129,17 @@ namespace GiaoxuNguPhucBE.Data
 
             modelBuilder.Entity<RefreshToken>()
                 .HasIndex(rt => rt.UserId);
+
+            // PageSetting.PageKey: mỗi trang (about, ministries, contact...) chỉ có đúng
+            // 1 bản ghi cấu hình ảnh bìa — khớp với IX_PageSettings_PageKey (unique) đã
+            // tạo trong migration AddPageSettingsTable.
+            modelBuilder.Entity<PageSetting>()
+                .HasIndex(p => p.PageKey)
+                .IsUnique();
+
+            // Hỗ trợ truy vấn danh sách ảnh slideshow trang chủ theo thứ tự hiển thị
+            modelBuilder.Entity<HomeSlide>()
+                .HasIndex(s => s.DisplayOrder);
         }
     }
 

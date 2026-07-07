@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import "./Register.css";
+import { usePageBanner } from "@/app/lib/usePageBanner";
 
 /* ── Config ── */
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
@@ -31,6 +32,7 @@ function isMinor(classTypeValue) {
 }
 
 export default function RegisterPage() {
+  const { bannerUrl } = usePageBanner("register");
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -143,7 +145,14 @@ export default function RegisterPage() {
   return (
     <div className="reg-page">
       {/* Hero */}
-      <div className="reg-hero-wrap">
+      <div
+        className="reg-hero-wrap"
+        style={bannerUrl ? {
+          backgroundImage: `linear-gradient(135deg, rgba(30,64,175,0.85) 0%, rgba(37,99,235,0.78) 100%), url('${bannerUrl}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        } : undefined}
+      >
         <div className="reg-hero">
           <div className="reg-hero-text">
             <h1 className="reg-hero-title">Đăng Ký Học Giáo Lý</h1>

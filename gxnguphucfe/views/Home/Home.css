@@ -170,12 +170,15 @@
 }
 
 .quick-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 24px;
 }
 
 .quick-action-item {
+  flex: 0 1 140px;
   text-align: center;
   padding: 20px 10px;
   text-decoration: none;
@@ -226,7 +229,11 @@
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .quick-grid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .quick-action-item {
+    flex-basis: 100px;
   }
 }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import "./Ministry.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
+import { usePageBanner } from "@/app/lib/usePageBanner";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 
@@ -39,6 +40,7 @@ function normalize(str) {
 }
 
 export default function MinistryPage() {
+  const { bannerUrl } = usePageBanner("ministries");
   const [activeTab, setActiveTab] = useState("all");
   const [leaders, setLeaders] = useState([]);
 
@@ -108,7 +110,12 @@ export default function MinistryPage() {
     <div className="ministry-page">
 
       {/* Hero */}
-      <div className="ministry-hero">
+      <div
+        className="ministry-hero"
+        style={bannerUrl ? {
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%), url('${bannerUrl}')`,
+        } : undefined}
+      >
         <div className="ministry-hero-content">
           <span className="ministry-hero-eyebrow">Cộng đoàn Đức tin</span>
           <h1 className="ministry-hero-title">Phục Vụ Trong Yêu Thương</h1>
