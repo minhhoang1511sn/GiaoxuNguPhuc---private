@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import "./Register.css";
 import { usePageBanner } from "@/app/lib/usePageBanner";
+import { API_BASE_URL } from "@/app/lib/apiClient";
 
 /* ── Config ── */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 
 const SCHOOL_YEARS = ["2026-2027", "2027-2028"];
 
@@ -50,7 +50,7 @@ export default function RegisterPage() {
 
     (async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/catechism-classes`);
+        const res = await fetch(`${API_BASE_URL}/api/catechism-classes`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (cancelled) return;
@@ -119,7 +119,7 @@ export default function RegisterPage() {
         note: form.note.trim() || null,
       };
 
-      const res = await fetch(`${BASE_URL}/api/catechism-registrations`, {
+      const res = await fetch(`${API_BASE_URL}/api/catechism-registrations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -4,11 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import "./NewsDetail.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
-
-/* ════════════════════════════════
-   Config
-════════════════════════════════ */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
+import { publicFor } from "@/app/lib/apiClient";
 
 const CATEGORY_CONFIG = {
   TinTuc: { label: "Tin Tức", color: "blue" },
@@ -55,20 +51,7 @@ function initials(name) {
 /* ════════════════════════════════
    API helpers
 ════════════════════════════════ */
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/posts${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const err = new Error(text || `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = publicFor("/api/posts");
 
 const apiGetPostBySlug = (slug) => apiFetch(`/slug/${encodeURIComponent(slug)}`);
 const apiGetFeatured = (take = 4) => apiFetch(`/featured?take=${take}`);

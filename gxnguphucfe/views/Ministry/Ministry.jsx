@@ -4,8 +4,12 @@ import { useState, useEffect } from "react";
 import "./Ministry.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
 import { usePageBanner } from "@/app/lib/usePageBanner";
+import { publicFor } from "@/app/lib/apiClient";
+import Link from "next/link";
+import RegistrationModal from "./RegistrationModal";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
+const apiMinistries = publicFor("/api/ministries");
+const apiClergy = publicFor("/api/clergy-members");
 
 const tabs = [
   { id: "all", label: "Tất cả" },
@@ -47,16 +51,14 @@ export default function MinistryPage() {
   const [ministries, setMinistries] = useState([]);
   const [ministriesLoading, setMinistriesLoading] = useState(true);
   const [ministriesError, setMinistriesError] = useState("");
-
+  const [showRegistration, setShowRegistration] = useState(false);
   useEffect(() => {
     let cancelled = false;
 
     async function fetchMinistries() {
       setMinistriesLoading(true);
       try {
-        const res = await fetch(`${BASE_URL}/api/ministries`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await apiMinistries();
         if (!cancelled) {
           setMinistries(
             (data ?? []).map((m) => ({
@@ -86,9 +88,7 @@ export default function MinistryPage() {
 
     async function fetchLeaders() {
       try {
-        const res = await fetch(`${BASE_URL}/api/clergy-members`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiClergy();
         if (!cancelled) setLeaders((data ?? []).filter((p) => p.ministryName));
       } catch {
         // Không hiển thị lỗi ở trang công khai — chỉ đơn giản không có thông tin trưởng ban
@@ -123,8 +123,9 @@ export default function MinistryPage() {
             Cùng nhau xây dựng cộng đoàn đức tin vững mạnh qua các hoạt động tông đồ và bác ái. Mỗi người một nén bạc, cùng nhau làm sáng danh Chúa.
           </p>
           <div className="ministry-hero-btns">
-            <button className="ministry-btn-primary">Tham gia ngay</button>
-            <button className="ministry-btn-ghost">Tìm hiểu thêm</button>
+            <button className="ministry-btn-primary" onClick={() => setShowRegistration(true)}>
+              Tham gia ngay
+            </button>
           </div>
         </div>
       </div>
@@ -179,12 +180,12 @@ export default function MinistryPage() {
                         {leader.schoolYear ? ` (niên khóa ${leader.schoolYear})` : ""}
                       </p>
                     )}
-                    <a href="#" className="ministry-card-link">
+                    <Link href={`/ministry/${m.id}`} className="ministry-card-link">
                       Tìm hiểu thêm
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
                       </svg>
-                    </a>
+                    </Link>
                   </div>
                 </div>
               );
@@ -212,10 +213,15 @@ export default function MinistryPage() {
               ))}
             </div>
           </div>
-          <button className="ministry-cta-btn">Đăng ký tình nguyện</button>
+          <button className="ministry-cta-btn" onClick={() => setShowRegistration(true)}>Đăng ký tham gia 1 cộng đoàn</button>
         </div>
       </div>
-
+      {showRegistration && (
+        <RegistrationModal
+          ministries={ministries}
+          onClose={() => setShowRegistration(false)}
+        />
+      )}
     </div>
   );
 }

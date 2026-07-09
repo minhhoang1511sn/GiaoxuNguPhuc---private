@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import "./About.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
 import { usePageBanner } from "@/app/lib/usePageBanner";
+import { API_BASE_URL } from "@/app/lib/apiClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 
 const tabs = [
   { id: "history", label: "Lịch sử", sub: "History" },
@@ -24,12 +24,36 @@ function toRoleEn(typeName) {
   }
 }
 
+// Type dùng để nhận diện Ban Hành Giáo (giáo dân phụ trách), tách riêng khỏi Quý Cha & Tu sĩ
+const BAN_HANH_GIAO_TYPE = "GiaoDan";
+
+// Gom danh sách "đã từng phục vụ" theo niên khóa, giữ nguyên thứ tự đã sắp từ API (niên khóa gần nhất trước)
+function groupBySchoolYear(list) {
+  const groups = [];
+  const indexByYear = new Map();
+
+  for (const person of list) {
+    const key = person.schoolYear || "Không rõ niên khóa";
+    if (!indexByYear.has(key)) {
+      indexByYear.set(key, groups.length);
+      groups.push({ year: key, items: [] });
+    }
+    groups[indexByYear.get(key)].items.push(person);
+  }
+
+  return groups;
+}
+
 export default function AboutPage() {
   const { bannerUrl } = usePageBanner("about");
   const [activeTab, setActiveTab] = useState("history");
   const [clergy, setClergy] = useState([]);
   const [clergyLoading, setClergyLoading] = useState(true);
   const [clergyError, setClergyError] = useState("");
+
+  const [pastClergy, setPastClergy] = useState([]);
+  const [pastLoading, setPastLoading] = useState(true);
+  const [pastError, setPastError] = useState("");
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -41,7 +65,7 @@ export default function AboutPage() {
     async function fetchClergy() {
       setClergyLoading(true);
       try {
-        const res = await fetch(`${BASE_URL}/api/clergy-members`);
+        const res = await fetch(`${API_BASE_URL}/api/clergy-members`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) setClergy(data ?? []);
@@ -59,10 +83,31 @@ export default function AboutPage() {
   useEffect(() => {
     let cancelled = false;
 
+    async function fetchPastClergy() {
+      setPastLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/clergy-members/past`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setPastClergy(data ?? []);
+      } catch (err) {
+        if (!cancelled) setPastError("Không tải được danh sách quý vị đã từng phục vụ.");
+      } finally {
+        if (!cancelled) setPastLoading(false);
+      }
+    }
+
+    fetchPastClergy();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     async function fetchHistory() {
       setHistoryLoading(true);
       try {
-        const res = await fetch(`${BASE_URL}/api/parish-history`);
+        const res = await fetch(`${API_BASE_URL}/api/parish-history`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) setHistory(data ?? []);
@@ -76,6 +121,55 @@ export default function AboutPage() {
     fetchHistory();
     return () => { cancelled = true; };
   }, []);
+
+  // Card dùng chung cho cả người đang phục vụ và người đã từng phục vụ
+  function renderClergyCard(person) {
+    const isPastor = PASTOR_BADGE_KEYWORDS.some((k) =>
+      person.position?.toLowerCase().includes(k)
+    );
+    return (
+      <div key={person.id} className="clergyCard">
+        <div className="cardImgWrap">
+          <div
+            className="cardImg"
+            style={person.imageUrl ? { backgroundImage: `url("${resolveImageUrl(person.imageUrl)}")` } : undefined}
+          />
+          <div className="cardImgOverlay" />
+          {isPastor && <div className="cardBadge">Pastor</div>}
+        </div>
+        <div className="cardBody">
+          <div className="cardName">{person.fullName}</div>
+          <div className="cardRole">
+            {person.position}
+            {person.ministryName ? ` · ${person.ministryName}` : ""}
+          </div>
+          <div className="cardRoleEn">{toRoleEn(person.typeName)}</div>
+          {person.schoolYear && (
+            <div className={`cardYear ${person.isCurrent ? "" : "cardYearEnded"}`}>
+              <span aria-hidden="true">📅</span>
+              {person.isCurrent ? `Niên khóa ${person.schoolYear} (đang phục vụ)` : `Niên khóa ${person.schoolYear} (đã phục vụ)`}
+            </div>
+          )}
+          <div className="cardActions">
+            {person.email && (
+              <a className="cardActionBtn" title="Gửi email" href={`mailto:${person.email}`}>✉</a>
+            )}
+            {person.phone && (
+              <a className="cardActionBtn" title="Gọi điện" href={`tel:${person.phone}`}>📞</a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentMainClergy = clergy.filter((p) => p.typeName !== BAN_HANH_GIAO_TYPE);
+  const currentBanHanhGiao = clergy.filter((p) => p.typeName === BAN_HANH_GIAO_TYPE);
+
+  const pastMainClergy = pastClergy.filter((p) => p.typeName !== BAN_HANH_GIAO_TYPE);
+  const pastBanHanhGiao = pastClergy.filter((p) => p.typeName === BAN_HANH_GIAO_TYPE);
+  const pastMainByYear = groupBySchoolYear(pastMainClergy);
+  const pastBanHanhGiaoByYear = groupBySchoolYear(pastBanHanhGiao);
 
   return (
     <div className="about-page">
@@ -164,7 +258,7 @@ export default function AboutPage() {
               </p>
             </div>
 
-            {/* CLERGY GRID */}
+            {/* CLERGY GRID — Quý Cha & Tu sĩ đang phục vụ */}
             {clergyLoading ? (
               <div className="clergyGrid">
                 <p style={{ padding: "24px 0" }}>Đang tải danh sách…</p>
@@ -173,46 +267,75 @@ export default function AboutPage() {
               <div className="clergyGrid">
                 <p style={{ padding: "24px 0" }}>{clergyError}</p>
               </div>
-            ) : clergy.length === 0 ? (
+            ) : currentMainClergy.length === 0 ? (
               <div className="clergyGrid">
                 <p style={{ padding: "24px 0" }}>Chưa có thông tin Quý Cha & Tu sĩ đang phục vụ.</p>
               </div>
             ) : (
               <div className="clergyGrid">
-                {clergy.map((person) => {
-                  const isPastor = PASTOR_BADGE_KEYWORDS.some((k) =>
-                    person.position?.toLowerCase().includes(k)
-                  );
-                  return (
-                    <div key={person.id} className="clergyCard">
-                      <div className="cardImgWrap">
-                        <div
-                          className="cardImg"
-                          style={person.imageUrl ? { backgroundImage: `url("${resolveImageUrl(person.imageUrl)}")` } : undefined}
-                        />
-                        <div className="cardImgOverlay" />
-                        {isPastor && <div className="cardBadge">Pastor</div>}
-                      </div>
-                      <div className="cardBody">
-                        <div className="cardName">{person.fullName}</div>
-                        <div className="cardRole">
-                          {person.position}
-                          {person.ministryName ? ` · ${person.ministryName}` : ""}
-                        </div>
-                        <div className="cardRoleEn">{toRoleEn(person.typeName)}</div>
-                        <div className="cardActions">
-                          {person.email && (
-                            <a className="cardActionBtn" title="Gửi email" href={`mailto:${person.email}`}>✉</a>
-                          )}
-                          {person.phone && (
-                            <a className="cardActionBtn" title="Gọi điện" href={`tel:${person.phone}`}>📞</a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {currentMainClergy.map(renderClergyCard)}
               </div>
+            )}
+
+            {/* BAN HÀNH GIÁO — đang phục vụ (khối riêng) */}
+            {!clergyLoading && !clergyError && currentBanHanhGiao.length > 0 && (
+              <>
+                <div className="sectionIntro">
+                  <h2>
+                    Ban Hành Giáo <em>đang phục vụ</em>
+                  </h2>
+                  <p>
+                    Quý ông bà, anh chị trong Ban Hành Giáo đang đồng hành và phục vụ
+                    đời sống giáo xứ Ngũ Phúc.
+                  </p>
+                </div>
+                <div className="clergyGrid">
+                  {currentBanHanhGiao.map(renderClergyCard)}
+                </div>
+              </>
+            )}
+
+            {/* ĐÃ TỪNG PHỤC VỤ — nhóm theo niên khóa */}
+            {!pastLoading && !pastError && pastClergy.length > 0 && (
+              <>
+                <div className="sectionIntro">
+                  <h2>
+                    Quý Cha, Tu sĩ &amp; Ban Hành Giáo <em>đã từng phục vụ</em>
+                  </h2>
+                  <p>
+                    Tri ân quý Cha, quý Thầy, quý Sr và quý vị trong Ban Hành Giáo đã
+                    từng đóng góp cho Giáo xứ Ngũ Phúc qua các niên khóa.
+                  </p>
+                </div>
+
+                {pastMainByYear.map((group) => (
+                  <div key={`past-clergy-${group.year}`} style={{ marginBottom: "1.5rem" }}>
+                    <h3 className="historyTitle" style={{ marginBottom: "1rem" }}>
+                      Niên khóa {group.year}
+                    </h3>
+                    <div className="clergyGrid">
+                      {group.items.map(renderClergyCard)}
+                    </div>
+                  </div>
+                ))}
+
+                {pastBanHanhGiaoByYear.map((group) => (
+                  <div key={`past-bhg-${group.year}`} style={{ marginBottom: "1.5rem" }}>
+                    <h3 className="historyTitle" style={{ marginBottom: "1rem" }}>
+                      Ban Hành Giáo · Niên khóa {group.year}
+                    </h3>
+                    <div className="clergyGrid">
+                      {group.items.map(renderClergyCard)}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {pastLoading && (
+              <p style={{ padding: "24px 0" }}>Đang tải danh sách đã từng phục vụ…</p>
+            )}
+            {pastError && (
+              <p style={{ padding: "24px 0" }}>{pastError}</p>
             )}
 
             {/* QUOTE */}

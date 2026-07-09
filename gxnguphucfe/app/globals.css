@@ -35,3 +35,101 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* =====================================================================
+   ADMIN THEME — Giáo xứ Ngũ Phúc Admin Panel
+   Toàn bộ màu của khu vực /admin được khai báo tập trung ở đây dưới dạng
+   biến CSS, để: (1) mọi trang nội dung admin dùng CHUNG một bảng màu,
+   (2) hỗ trợ chuyển Dark/Light bằng cách đổi thuộc tính data-admin-theme
+   trên thẻ bọc ngoài (.adminShell) — không cần load lại trang.
+   ===================================================================== */
+
+[data-admin-theme='dark'] {
+  /* Nền */
+  --gxnp-bg: #0c0f1a;
+  --gxnp-bg-soft: #0f1220;
+  --gxnp-surface: #131726;
+  --gxnp-surface-hover: #1a2035;
+  --gxnp-surface-hover-2: #171e30;
+
+  /* Viền */
+  --gxnp-border: #1e2540;
+  --gxnp-border-strong: #334155;
+
+  /* Chữ */
+  --gxnp-heading: #f1f5f9;
+  --gxnp-text: #e2e8f0;
+  --gxnp-text-muted: #94a3b8;
+  --gxnp-text-faint: #64748b;
+  --gxnp-text-dim: #475569;
+  --gxnp-placeholder: #334155;
+
+  /* Màu nhấn (accent) */
+  --gxnp-accent: #6ee7b7;
+  --gxnp-accent-rgb: 110, 231, 183;
+  --gxnp-accent-strong: #34d399;
+
+  /* Trạng thái */
+  --gxnp-danger: #f87171;
+  --gxnp-danger-rgb: 248, 113, 113;
+  --gxnp-info: #60a5fa;
+  --gxnp-info-rgb: 96, 165, 250;
+  --gxnp-warning: #fbbf24;
+  --gxnp-warning-rgb: 251, 191, 36;
+  --gxnp-warning-border: #f59e0b;
+  --gxnp-purple: #a78bfa;
+  --gxnp-purple-rgb: 167, 139, 250;
+  --gxnp-text-muted-rgb: 148, 163, 184;
+
+  --gxnp-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  --gxnp-shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+[data-admin-theme='light'] {
+  /* Nền */
+  --gxnp-bg: #f2f4f8;
+  --gxnp-bg-soft: #eaeef4;
+  --gxnp-surface: #ffffff;
+  --gxnp-surface-hover: #f1f4f9;
+  --gxnp-surface-hover-2: #f7f9fc;
+
+  /* Viền */
+  --gxnp-border: #e2e6ee;
+  --gxnp-border-strong: #cbd3e1;
+
+  /* Chữ */
+  --gxnp-heading: #0f172a;
+  --gxnp-text: #1e293b;
+  --gxnp-text-muted: #64748b;
+  --gxnp-text-faint: #94a3b8;
+  --gxnp-text-dim: #94a3b8;
+  --gxnp-placeholder: #b6c0d1;
+
+  /* Màu nhấn (accent) */
+  --gxnp-accent: #059669;
+  --gxnp-accent-rgb: 5, 150, 105;
+  --gxnp-accent-strong: #047857;
+
+  /* Trạng thái */
+  --gxnp-danger: #dc2626;
+  --gxnp-danger-rgb: 220, 38, 38;
+  --gxnp-info: #2563eb;
+  --gxnp-info-rgb: 37, 99, 235;
+  --gxnp-warning: #b45309;
+  --gxnp-warning-rgb: 180, 83, 9;
+  --gxnp-warning-border: #d97706;
+  --gxnp-purple: #7c3aed;
+  --gxnp-purple-rgb: 124, 58, 237;
+  --gxnp-text-muted-rgb: 100, 116, 139;
+
+  --gxnp-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  --gxnp-shadow-hover: 0 4px 14px rgba(15, 23, 42, 0.1);
+  color-scheme: light;
+}
+
+/* Sidebar (menu) luôn 1 màu phẳng, không đổi theo theme — theo đúng chuẩn
+   các admin panel phổ biến (menu tối cố định, chỉ vùng nội dung đổi theme). */
+:root {
+  --gxnp-sidebar-bg: #0f1117;
+}

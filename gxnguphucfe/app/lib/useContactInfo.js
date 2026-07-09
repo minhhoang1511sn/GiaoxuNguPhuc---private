@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authFetch } from '@/app/lib/authClient';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { API_BASE_URL, apiFor } from '@/app/lib/apiClient';
 
 export const EMPTY_CONTACT_INFO = {
   id: 0,
@@ -28,7 +26,7 @@ let cachedPromise = null;
 
 function fetchContactInfo() {
   if (!cachedPromise) {
-    cachedPromise = fetch(`${BASE_URL}/api/contact-info`)
+    cachedPromise = fetch(`${API_BASE_URL}/api/contact-info`)
       .then((res) => {
         if (!res.ok) throw new Error('Không tải được thông tin liên hệ từ server');
         return res.json();
@@ -78,18 +76,7 @@ export function useContactInfo() {
 
 /* ── API cho trang admin ── */
 
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/contact-info${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/contact-info');
 
 export const apiGetContactInfoAdmin = () => apiFetch('/admin');
 

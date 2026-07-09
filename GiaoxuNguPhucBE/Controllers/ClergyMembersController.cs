@@ -21,6 +21,14 @@ namespace GiaoxuNguPhucBE.Controllers
             return Ok(result);
         }
 
+        /// <summary>GET /api/clergy-members/past - Danh sách người đã từng phục vụ (các niên khóa trước, phía trang công khai)</summary>
+        [HttpGet("past")]
+        public async Task<ActionResult<List<ClergyMemberDto>>> GetPast()
+        {
+            var result = await service.GetPastAsync();
+            return Ok(result);
+        }
+
         // ── Admin Endpoints ───────────────────────────────────────────────────────
 
         /// <summary>GET /api/clergy-members/admin - Toàn bộ danh sách (kể cả các niên khóa trước)</summary>

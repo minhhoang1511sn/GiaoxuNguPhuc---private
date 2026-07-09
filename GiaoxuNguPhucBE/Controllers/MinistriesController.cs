@@ -82,5 +82,16 @@ namespace GiaoxuNguPhucBE.Controllers
 
             return NoContent();
         }
+
+        /// <summary>GET /api/ministries/{id} - Chi tiết đoàn thể (phía trang công khai)</summary>
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<MinistryDto>> GetPublicById(int id)
+        {
+            var result = await service.GetByIdAsync(id);
+            if (result is null || !result.IsActive)
+                return NotFound(new ApiError($"Không tìm thấy đoàn thể với id {id}."));
+
+            return Ok(result);
+        }
     }
 }

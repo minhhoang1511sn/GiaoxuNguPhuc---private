@@ -21,6 +21,20 @@ namespace GiaoxuNguPhucBE.Services
             return items.Select(MapToDto).ToList();
         }
 
+        // ── GetPast (public, phía user — đã từng phục vụ) ──────────────────────
+
+        public async Task<List<ClergyMemberDto>> GetPastAsync()
+        {
+            var items = await db.ClergyMembers
+                .Where(c => !c.IsCurrent)
+                .OrderByDescending(c => c.SchoolYear)
+                .ThenBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Id)
+                .ToListAsync();
+
+            return items.Select(MapToDto).ToList();
+        }
+
         // ── GetAll (admin) ─────────────────────────────────────────────────────
 
         public async Task<List<ClergyMemberDto>> GetAllAsync()

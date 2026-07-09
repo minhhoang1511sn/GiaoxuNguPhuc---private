@@ -17,6 +17,7 @@ namespace GiaoxuNguPhucBE.Data
         public DbSet<ClergyMember> ClergyMembers { get; set; }
         public DbSet<ParishHistoryMilestone> ParishHistoryMilestones { get; set; }
         public DbSet<Ministry> Ministries { get; set; }
+        public DbSet<MinistryRegistration> MinistryRegistrations { get; set; }
         public DbSet<ContactInfo> ContactInfos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<ParishCalendarEvent> ParishCalendarEvents { get; set; }

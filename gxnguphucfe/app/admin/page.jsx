@@ -3,26 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import styles from './layout.module.css';
-import { authFetch } from '@/app/lib/authClient';
+import { safeApiFetch } from '@/app/lib/apiClient';
 import { useAuth } from '@/app/contexts/AuthContext';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 // Số bài viết / đơn đăng ký tối đa lấy về để cộng dồn lượt xem, bình luận...
 // (BE không có sẵn endpoint tổng hợp riêng nên FE tự cộng từ danh sách).
 const AGGREGATE_PAGE_SIZE = 200;
-
-async function safeGet(path) {
-  try {
-    const res = await authFetch(`${BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
 
 function fmtNumber(n) {
   if (n === null || n === undefined) return '—';
@@ -60,7 +46,7 @@ export default function AdminDashboard() {
       // Bài viết: Admin thấy toàn bộ, tài khoản đoàn thể chỉ thấy bài của mình
       // (BE tự lọc theo MinistryId ở API /api/posts/admin).
       const postsQuery = `page=1&pageSize=${AGGREGATE_PAGE_SIZE}&sortBy=createdAt&sortOrder=desc`;
-      const postsData = await safeGet(`/api/posts/admin?${postsQuery}`);
+      const postsData = await safeApiFetch(`/api/posts/admin?${postsQuery}`);
       const postItems = postsData?.items ?? [];
       const postsTotal = postsData?.totalCount ?? postItems.length;
       const totalViews = postItems.reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
@@ -77,10 +63,10 @@ export default function AdminDashboard() {
       if (isAdmin) {
         // Các số liệu toàn hệ thống — chỉ Admin mới có quyền gọi các API này.
         const [accountsData, coursesData, clergyData, registrationsData] = await Promise.all([
-          safeGet('/api/account?page=1&pageSize=1'),
-          safeGet('/api/catechism-classes/admin'),
-          safeGet('/api/clergy-members/admin'),
-          safeGet(`/api/catechism-registrations/admin?page=1&pageSize=${AGGREGATE_PAGE_SIZE}&sortBy=createdAt&sortOrder=desc`),
+          safeApiFetch('/api/account?page=1&pageSize=1'),
+          safeApiFetch('/api/catechism-classes/admin'),
+          safeApiFetch('/api/clergy-members/admin'),
+          safeApiFetch(`/api/catechism-registrations/admin?page=1&pageSize=${AGGREGATE_PAGE_SIZE}&sortBy=createdAt&sortOrder=desc`),
         ]);
 
         registrationItems = registrationsData?.items ?? [];

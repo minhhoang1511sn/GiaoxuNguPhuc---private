@@ -1,20 +1,14 @@
 /* ==============================
    ADMIN DASHBOARD – MODULE CSS
+   Toàn bộ màu lấy từ biến --gxnp-* khai báo tại app/globals.css
+   (xem [data-admin-theme='dark'] / [data-admin-theme='light']),
+   để menu và nội dung luôn đồng bộ 1 bảng màu, đổi được Dark/Light.
 ============================== */
 
-/* ===== CSS VARIABLES (khai báo ở đây nếu chưa có trong global.css) ===== */
 :root {
   --sidebar-width: 240px;
   --sidebar-collapsed: 64px;
   --topbar-h: 60px;
-  --accent: #6ee7b7;
-  --sidebar-bg: #0f1117;
-  --content-bg: #f4f6f9;
-  --white: #ffffff;
-  --border: #e5e7eb;
-  --text-primary: #111827;
-  --text-muted: #6b7280;
-  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   --mono: 'Courier New', monospace;
 }
 
@@ -22,14 +16,14 @@
 .adminShell {
   display: flex;
   min-height: 100vh;
-  background: var(--content-bg);
+  background: var(--gxnp-bg);
 }
 
-/* ===== SIDEBAR ===== */
+/* ===== SIDEBAR (MENU) — luôn 1 màu phẳng, không gradient ===== */
 .adminSidebar {
   width: var(--sidebar-width);
   min-height: 100vh;
-  background: var(--sidebar-bg);
+  background: var(--gxnp-sidebar-bg);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -56,7 +50,7 @@
 .logoMark {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent), #3b82f6);
+  background: var(--gxnp-accent);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -131,8 +125,8 @@
   background: rgba(255, 255, 255, 0.06);
 }
 .navItem.active {
-  color: var(--accent);
-  background: rgba(110, 231, 183, 0.1);
+  color: var(--gxnp-accent);
+  background: rgba(var(--gxnp-accent-rgb), 0.12);
 }
 .activeBar {
   position: absolute;
@@ -141,7 +135,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 16px;
-  background: var(--accent);
+  background: var(--gxnp-accent);
   border-radius: 2px;
 }
 
@@ -176,6 +170,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.themeToggleBtn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.themeToggleBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--gxnp-accent);
 }
 .collapseBtn {
   width: 36px;
@@ -214,24 +227,25 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* ===== MAIN ===== */
+/* ===== MAIN / NỘI DUNG — 1 màu nền duy nhất theo theme ===== */
 .adminMain {
   /* KHÔNG set margin-left ở đây — được xử lý bằng inline style trong JSX */
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  transition: margin-left 0.25s ease;
+  transition: margin-left 0.25s ease, background 0.2s ease;
   /* Đảm bảo không bị tràn ra ngoài */
   min-width: 0;
   width: 100%;
+  background: var(--gxnp-bg);
 }
 
 /* Topbar */
 .adminTopbar {
   height: var(--topbar-h);
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
+  background: var(--gxnp-surface);
+  border-bottom: 1px solid var(--gxnp-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -243,7 +257,7 @@
 .pageTitle {
   font-size: 17px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--gxnp-heading);
   letter-spacing: -0.02em;
 }
 .topbarRight {
@@ -253,7 +267,7 @@
 }
 .topbarTime {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
   font-family: var(--mono);
 }
 
@@ -263,23 +277,23 @@
   gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--gxnp-text);
   text-decoration: none;
   padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--gxnp-border);
   transition: border-color 0.15s, color 0.15s, background 0.15s;
   white-space: nowrap;
 }
 .backToSiteBtn:hover {
-  border-color: var(--accent);
-  color: #059669;
-  background: rgba(110, 231, 183, 0.06);
+  border-color: var(--gxnp-accent);
+  color: var(--gxnp-accent);
+  background: rgba(var(--gxnp-accent-rgb), 0.08);
 }
 .adminAvatar {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, var(--accent), #3b82f6);
+  background: var(--gxnp-accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -294,7 +308,7 @@
 
 .topbarUserName {
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
 }
 
 .topbarUserLink {
@@ -307,10 +321,10 @@
   transition: background 0.15s;
 }
 .topbarUserLink:hover {
-  background: rgba(110, 231, 183, 0.08);
+  background: rgba(var(--gxnp-accent-rgb), 0.1);
 }
 .topbarUserLink:hover .topbarUserName {
-  color: var(--text-primary);
+  color: var(--gxnp-text);
 }
 
 .authGate {
@@ -319,15 +333,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
   font-size: 14px;
-  background: #0f1117;
+  background: var(--gxnp-bg);
 }
 
 /* Content */
 .adminContent {
   flex: 1;
   padding: 28px;
+  background: var(--gxnp-bg);
 }
 
 /* ===== DASHBOARD ===== */
@@ -350,19 +365,20 @@
 }
 
 .statCard {
-  background: var(--white);
+  background: var(--gxnp-surface);
   border-radius: 14px;
   padding: 20px 22px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border);
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: var(--gxnp-shadow);
+  border: 1px solid var(--gxnp-border);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  text-decoration: none;
 }
 .statCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--gxnp-shadow-hover);
 }
 .statIcon {
   font-size: 24px;
@@ -375,14 +391,14 @@
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--gxnp-heading);
   letter-spacing: -0.03em;
   font-family: var(--mono);
 }
 .statLabel {
   display: block;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
   font-weight: 500;
   margin-top: 2px;
 }
@@ -406,16 +422,16 @@
 
 .activityCard,
 .quickCard {
-  background: var(--white);
+  background: var(--gxnp-surface);
   border-radius: 14px;
   padding: 22px 24px;
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border);
+  box-shadow: var(--gxnp-shadow);
+  border: 1px solid var(--gxnp-border);
 }
 .cardHeading {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--gxnp-heading);
   margin-bottom: 16px;
   letter-spacing: -0.01em;
 }
@@ -432,7 +448,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 11px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--gxnp-border);
 }
 .activityItem:last-child {
   border-bottom: none;
@@ -450,13 +466,13 @@
 .activityAction {
   display: block;
   font-size: 13.5px;
-  color: var(--text-primary);
+  color: var(--gxnp-text);
   font-weight: 500;
 }
 .activityMeta {
   display: block;
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
   margin-top: 2px;
   font-family: var(--mono);
 }
@@ -475,18 +491,18 @@
   gap: 8px;
   padding: 18px 12px;
   border-radius: 12px;
-  border: 1.5px dashed var(--border);
+  border: 1.5px dashed var(--gxnp-border);
   text-decoration: none;
-  color: var(--text-primary);
+  color: var(--gxnp-text);
   font-size: 12.5px;
   font-weight: 600;
   text-align: center;
   transition: all 0.15s;
 }
 .quickBtn:hover {
-  border-color: var(--accent);
-  background: rgba(110, 231, 183, 0.05);
-  color: #059669;
+  border-color: var(--gxnp-accent);
+  background: rgba(var(--gxnp-accent-rgb), 0.06);
+  color: var(--gxnp-accent);
 }
 .quickIcon {
   font-size: 20px;
@@ -497,7 +513,7 @@
   transition: border-color 0.15s, transform 0.15s;
 }
 .statCardLink:hover {
-  border-color: #2d3a5a;
+  border-color: var(--gxnp-border-strong);
   transform: translateY(-2px);
 }
 
@@ -507,7 +523,7 @@
   width: 40px;
   height: 20px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--border) 25%, rgba(0,0,0,0.04) 50%, var(--border) 75%);
+  background: linear-gradient(90deg, var(--gxnp-border) 25%, rgba(128,128,128,0.15) 50%, var(--gxnp-border) 75%);
   background-size: 200% 100%;
   animation: gxnp-shimmer 1.2s ease-in-out infinite;
 }
@@ -517,20 +533,21 @@
 }
 .emptyState {
   font-size: 12.5px;
-  color: var(--text-muted);
+  color: var(--gxnp-text-muted);
   padding: 8px 0;
 }
 .dashboardError {
   font-size: 12.5px;
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--gxnp-danger);
+  background: rgba(var(--gxnp-danger-rgb), 0.08);
+  border: 1px solid rgba(var(--gxnp-danger-rgb), 0.2);
   border-radius: 10px;
   padding: 10px 14px;
 }
 
-/*LOGO*/
-/* Logo ảnh (thay cho logoMark chữ ✝ khi có ảnh thật) */
+/* LOGO */
+/* Logo ảnh (thay cho logoMark chữ khi có ảnh thật) — nền trắng cố định để
+   ảnh logo (thường nền trong suốt/trắng) luôn hiển thị rõ trên sidebar tối. */
 .logoIconWrap {
   width: 40px;
   height: 40px;
@@ -541,7 +558,7 @@
   justify-content: center;
   overflow: hidden; /* cắt ảnh thành hình tròn */
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 .logoImage {
   width: 100%;

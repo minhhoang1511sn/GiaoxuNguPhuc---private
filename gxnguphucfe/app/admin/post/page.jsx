@@ -6,9 +6,8 @@ import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
 import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
-import { authFetch } from '@/app/lib/authClient';
+import { apiFor } from '@/app/lib/apiClient';
 import { useAuth } from '@/app/contexts/AuthContext';
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 // Đây thuần là lựa chọn icon hiển thị (không có khái niệm tương ứng ở BE) nên vẫn giữ ở frontend.
 const ICONS = [
@@ -42,18 +41,7 @@ function fmtDate(d) {
 /* ════════════════════════════════
    API helpers
 ════════════════════════════════ */
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/posts${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/posts');
 
 const apiGetPosts = (page = 1, search = '', status = '') =>
   apiFetch(`/admin?page=${page}&pageSize=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}${status && status !== 'all' ? `&status=${status}` : ''}`);

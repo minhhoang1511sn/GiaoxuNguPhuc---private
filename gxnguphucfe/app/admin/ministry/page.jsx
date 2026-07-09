@@ -6,8 +6,7 @@ import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
 import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
-import { authFetch } from '@/app/lib/authClient';
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { apiFor } from '@/app/lib/apiClient';
 
 const STATUSES_FILTER = [
   { key: 'all', label: 'Tất cả' },
@@ -26,26 +25,27 @@ const EMPTY_FORM = {
   isActive: true,
 };
 
+const REG_STATUS_LABEL = {
+  0: { label: 'Chờ duyệt', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  1: { label: 'Đã duyệt', color: '#6ee7b7', bg: 'rgba(110,231,183,0.1)' },
+  2: { label: 'Từ chối', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+};
+
 /* ════════════════════════════════
    API helpers
 ════════════════════════════════ */
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/ministries${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/ministries');
 
 const apiGetAll = () => apiFetch('/admin');
 const apiCreate = (data) => apiFetch('/admin', { method: 'POST', body: JSON.stringify(data) });
 const apiUpdate = (id, data) => apiFetch(`/admin/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 const apiDelete = (id) => apiFetch(`/admin/${id}`, { method: 'DELETE' });
+
+const apiRegFetch = apiFor('/api/ministry-registrations');
+const apiGetAllRegistrations = () => apiRegFetch('/admin');
+const apiUpdateRegistrationStatus = (id, status) =>
+  apiRegFetch(`/admin/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+const apiDeleteRegistration = (id) => apiRegFetch(`/admin/${id}`, { method: 'DELETE' });
 
 /* ════════════════════════════════
    Toast
@@ -64,7 +64,7 @@ function Toast({ toasts }) {
 }
 
 /* ════════════════════════════════
-   Modal
+   Modal: Thêm / Sửa đoàn thể
 ════════════════════════════════ */
 function MinistryModal({ mode, initial, onClose, onSave, categoriesList }) {
   const isEdit = mode === 'edit';
@@ -305,6 +305,106 @@ function MinistryModal({ mode, initial, onClose, onSave, categoriesList }) {
 }
 
 /* ════════════════════════════════
+   Modal: Danh sách đơn đăng ký của 1 đoàn thể
+════════════════════════════════ */
+function RegistrationsModal({ ministry, registrations, onClose, onUpdateStatus, onDelete }) {
+  const list = registrations.filter((r) => r.ministryId === ministry.id);
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>Đơn đăng ký — {ministry.name}</h2>
+            <p className={styles.modalSub}>{list.length} đơn đăng ký</p>
+          </div>
+          <button className={styles.modalClose} onClick={onClose}>✕</button>
+        </div>
+
+        <div className={styles.modalBody}>
+          {list.length === 0 ? (
+            <p style={{ color: '#94a3b8', textAlign: 'center', padding: '24px 0' }}>
+              Chưa có đơn đăng ký nào.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {list.map((r) => {
+                const st = REG_STATUS_LABEL[r.status] ?? REG_STATUS_LABEL[0];
+                return (
+                  <div
+                    key={r.id}
+                    style={{
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      padding: 14,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{r.fullName}</div>
+                        <div style={{ fontSize: 13, color: '#94a3b8' }}>
+                          {r.phone}{r.email ? ` · ${r.email}` : ''}
+                        </div>
+                      </div>
+                      <span
+                        className={styles.statusPill}
+                        style={{ background: st.bg, color: st.color }}
+                      >
+                        <span className={styles.statusDot} style={{ background: st.color }} />
+                        {st.label}
+                      </span>
+                    </div>
+
+                    {r.note && (
+                      <div style={{ fontSize: 13, color: '#cbd5e1' }}>Ghi chú: {r.note}</div>
+                    )}
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                      Đăng ký lúc: {new Date(r.createdAt).toLocaleString('vi-VN')}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                      {r.status !== 1 && (
+                        <button
+                          className={styles.actionBtn}
+                          onClick={() => onUpdateStatus(r.id, 1)}
+                        >
+                          ✓ Duyệt
+                        </button>
+                      )}
+                      {r.status !== 2 && (
+                        <button
+                          className={styles.actionBtn}
+                          onClick={() => onUpdateStatus(r.id, 2)}
+                        >
+                          Từ chối
+                        </button>
+                      )}
+                      <button
+                        className={`${styles.actionBtn} ${styles.del}`}
+                        onClick={() => onDelete(r.id)}
+                      >
+                        Xoá
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.modalFooter}>
+          <button className={styles.btnCancel} onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════
    Main page
 ════════════════════════════════ */
 export default function MinistryAdminPage() {
@@ -315,6 +415,9 @@ export default function MinistryAdminPage() {
 
   const [ministries, setMinistries] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [registrations, setRegistrations] = useState([]);
+  const [regModalMinistry, setRegModalMinistry] = useState(null);
 
   const [search, setSearch] = useState('');
   const [activeSt, setActiveSt] = useState('all');
@@ -341,7 +444,19 @@ export default function MinistryAdminPage() {
     }
   }, []);
 
-  useEffect(() => { fetchMinistries(); }, [fetchMinistries]);
+  const fetchRegistrations = useCallback(async () => {
+    try {
+      const data = await apiGetAllRegistrations();
+      setRegistrations(data ?? []);
+    } catch (err) {
+      addToast('Không tải được đơn đăng ký: ' + err.message, 'error');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMinistries();
+    fetchRegistrations();
+  }, [fetchMinistries, fetchRegistrations]);
 
   const filtered = ministries.filter((m) => {
     if (activeSt === 'active' && !m.isActive) return false;
@@ -411,12 +526,42 @@ export default function MinistryAdminPage() {
     });
   };
 
+  const getRegCounts = (ministryId) => {
+    const list = registrations.filter((r) => r.ministryId === ministryId);
+    return {
+      total: list.length,
+      pending: list.filter((r) => r.status === 0).length,
+    };
+  };
+
+  const handleUpdateRegStatus = async (id, status) => {
+    try {
+      await apiUpdateRegistrationStatus(id, status);
+      addToast(status === 1 ? 'Đã duyệt đơn đăng ký' : 'Đã từ chối đơn đăng ký');
+      fetchRegistrations();
+    } catch (err) {
+      addToast('Lỗi: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteRegistration = async (id) => {
+    if (!confirm('Xoá đơn đăng ký này?')) return;
+    try {
+      await apiDeleteRegistration(id);
+      addToast('Đã xoá đơn đăng ký');
+      fetchRegistrations();
+    } catch (err) {
+      addToast('Lỗi xoá: ' + err.message, 'error');
+    }
+  };
+
   const chipClass = (key) => {
     const m = { all: 'activeAll', active: 'activePublished', inactive: 'activeDraft' };
     return styles[m[key]] ?? '';
   };
 
   const activeCount = ministries.filter((m) => m.isActive).length;
+  const totalPending = registrations.filter((r) => r.status === 0).length;
 
   return (
     <>
@@ -432,6 +577,16 @@ export default function MinistryAdminPage() {
         />
       )}
 
+      {regModalMinistry && (
+        <RegistrationsModal
+          ministry={regModalMinistry}
+          registrations={registrations}
+          onClose={() => setRegModalMinistry(null)}
+          onUpdateStatus={handleUpdateRegStatus}
+          onDelete={handleDeleteRegistration}
+        />
+      )}
+
       <div className={styles.postsPage}>
         {/* Header */}
         <div className={styles.postsTopbar}>
@@ -439,6 +594,11 @@ export default function MinistryAdminPage() {
             <h1 className={styles.postsHeading}>Quản lý Đoàn thể</h1>
             <p className={styles.postsSub}>
               {ministries.length} đoàn thể · {activeCount} đang hoạt động
+              {totalPending > 0 && (
+                <span style={{ color: '#fbbf24', marginLeft: 8 }}>
+                  · {totalPending} đơn đang chờ duyệt
+                </span>
+              )}
             </p>
           </div>
           <button className={styles.postsAddBtn} onClick={() => setModal({ mode: 'create' })}>
@@ -484,7 +644,7 @@ export default function MinistryAdminPage() {
         {/* Table */}
         <div className={styles.tableCard}>
           <div className={styles.tableHead}>
-            {['Đoàn thể', 'Phân loại', 'Thứ tự', 'Trạng thái', 'Thao tác'].map((h) => (
+            {['Đoàn thể', 'Phân loại', 'Thứ tự', 'Trạng thái', 'Đơn đăng ký', 'Thao tác'].map((h) => (
               <div key={h} className={styles.th}>{h}</div>
             ))}
           </div>
@@ -493,38 +653,68 @@ export default function MinistryAdminPage() {
             <div className={styles.tableEmpty}>Đang tải…</div>
           ) : filtered.length === 0 ? (
             <div className={styles.tableEmpty}>Không tìm thấy đoàn thể phù hợp.</div>
-          ) : filtered.map((ministry, i) => (
-            <div key={ministry.id} className={styles.tableRow} style={{ animationDelay: `${i * 30}ms` }}>
-              <div className={styles.postInfo}>
-                <div className={styles.postThumb}>
-                  {ministry.imageUrl ? (
-                    <img src={resolveImageUrl(ministry.imageUrl)} alt={ministry.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
-                  ) : (ministry.icon || '👥')}
+          ) : filtered.map((ministry, i) => {
+            const { total, pending } = getRegCounts(ministry.id);
+            return (
+              <div key={ministry.id} className={styles.tableRow} style={{ animationDelay: `${i * 30}ms` }}>
+                <div className={styles.postInfo}>
+                  <div className={styles.postThumb}>
+                    {ministry.imageUrl ? (
+                      <img src={resolveImageUrl(ministry.imageUrl)} alt={ministry.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                    ) : (ministry.icon || '👥')}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className={styles.postTitle} title={ministry.name}>{ministry.name}</div>
+                    <div className={styles.postAuthor} title={ministry.description}>{ministry.description}</div>
+                  </div>
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <div className={styles.postTitle} title={ministry.name}>{ministry.name}</div>
-                  <div className={styles.postAuthor} title={ministry.description}>{ministry.description}</div>
+                <div className={styles.dateCell}>{ministry.categoryLabel || categoryLabelByKey[ministry.categoryName] || ministry.categoryName}</div>
+                <div className={styles.dateCell}>{ministry.displayOrder}</div>
+                <div>
+                  <span
+                    className={styles.statusPill}
+                    style={ministry.isActive
+                      ? { background: 'rgba(110,231,183,0.1)', color: '#6ee7b7' }
+                      : { background: 'rgba(100,116,139,0.12)', color: '#94a3b8' }}
+                  >
+                    <span className={styles.statusDot} style={{ background: ministry.isActive ? '#10b981' : '#64748b' }} />
+                    {ministry.isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'}
+                  </span>
+                </div>
+                <div>
+                  {total === 0 ? (
+                    <span style={{ color: '#64748b', fontSize: 13 }}>Chưa có đơn</span>
+                  ) : (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => setRegModalMinistry(ministry)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      📋 {total} đơn
+                      {pending > 0 && (
+                        <span
+                          style={{
+                            background: 'rgba(251,191,36,0.15)',
+                            color: '#fbbf24',
+                            borderRadius: 999,
+                            padding: '2px 8px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {pending} chờ
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className={styles.rowActions}>
+                  <button className={styles.actionBtn} onClick={() => openEdit(ministry)}>Sửa</button>
+                  <button className={`${styles.actionBtn} ${styles.del}`} onClick={() => handleDelete(ministry)}>Xoá</button>
                 </div>
               </div>
-              <div className={styles.dateCell}>{ministry.categoryLabel || categoryLabelByKey[ministry.categoryName] || ministry.categoryName}</div>
-              <div className={styles.dateCell}>{ministry.displayOrder}</div>
-              <div>
-                <span
-                  className={styles.statusPill}
-                  style={ministry.isActive
-                    ? { background: 'rgba(110,231,183,0.1)', color: '#6ee7b7' }
-                    : { background: 'rgba(100,116,139,0.12)', color: '#94a3b8' }}
-                >
-                  <span className={styles.statusDot} style={{ background: ministry.isActive ? '#10b981' : '#64748b' }} />
-                  {ministry.isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'}
-                </span>
-              </div>
-              <div className={styles.rowActions}>
-                <button className={styles.actionBtn} onClick={() => openEdit(ministry)}>Sửa</button>
-                <button className={`${styles.actionBtn} ${styles.del}`} onClick={() => handleDelete(ministry)}>Xoá</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className={styles.tableFoot}>
             <span className={styles.footInfo}>

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { API_BASE_URL } from '@/app/lib/apiClient';
 
 const EMPTY = {
   classTypes: [],
@@ -19,7 +18,7 @@ let cachedPromise = null;
 
 function fetchEnums() {
   if (!cachedPromise) {
-    cachedPromise = fetch(`${BASE_URL}/api/meta/enums`)
+    cachedPromise = fetch(`${API_BASE_URL}/api/meta/enums`)
       .then((res) => {
         if (!res.ok) throw new Error('Không tải được danh sách enum từ server');
         return res.json();

@@ -1,6 +1,5 @@
 import { authFetch } from '@/app/lib/authClient';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { API_BASE_URL } from '@/app/lib/apiClient';
 
 /**
  * Upload 1 file ảnh từ máy người dùng lên server.
@@ -12,7 +11,7 @@ export async function uploadImage(file, folder = 'general') {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await authFetch(`${BASE_URL}/api/uploads?folder=${encodeURIComponent(folder)}`, {
+  const res = await authFetch(`${API_BASE_URL}/api/uploads?folder=${encodeURIComponent(folder)}`, {
     method: 'POST',
     body: formData,
   });
@@ -40,6 +39,6 @@ export async function uploadImage(file, folder = 'general') {
 export function resolveImageUrl(url) {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
-  if (url.startsWith('/')) return `${BASE_URL}${url}`;
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
   return url;
 }

@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './lich-le.module.css';
-import { authFetch } from '@/app/lib/authClient';
+import { apiFor } from '@/app/lib/apiClient';
 import { useEnumOptions } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 const EMPTY_FORM = {
   title: '',
@@ -47,25 +46,7 @@ function toDateInputValue(d) {
 }
 
 /* ── API helpers ── */
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/parish-calendar-events${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    let message = text;
-    try {
-      const parsed = JSON.parse(text);
-      message = parsed?.message || parsed?.title || text;
-    } catch {
-      // giữ nguyên text nếu không phải JSON
-    }
-    throw new Error(message || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/parish-calendar-events');
 
 const apiGetByMonth = (year, month) => apiFetch(`/admin?year=${year}&month=${month}`);
 const apiCreate = (data) => apiFetch('/admin', { method: 'POST', body: JSON.stringify(data) });

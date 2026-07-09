@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './accounts.module.css';
-import { authFetch } from '@/app/lib/authClient';
+import { apiFor, safeApiFetch } from '@/app/lib/apiClient';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 /* ── Config ── */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 const PAGE_SIZE = 10;
 
 const ROLE_FILTERS = [
@@ -48,25 +47,7 @@ function fmtDate(d) {
 }
 
 /* ── API helpers ── */
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/account${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    let message = text;
-    try {
-      const parsed = JSON.parse(text);
-      message = parsed?.message || parsed?.title || text;
-    } catch {
-      // không phải JSON, giữ nguyên text
-    }
-    throw new Error(message || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/account');
 
 function buildQuery({ page, search, role, status, approval }) {
   const params = new URLSearchParams();
@@ -92,13 +73,7 @@ const apiResetPassword = (id, newPassword) => apiFetch(`/${id}/reset-password`, 
 const apiDelete = (id) => apiFetch(`/${id}`, { method: 'DELETE' });
 
 // Danh sách đoàn thể để hiển thị dropdown gán cho tài khoản role User
-async function apiGetMinistries() {
-  const res = await authFetch(`${BASE_URL}/api/ministries/admin`, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
+const apiGetMinistries = () => safeApiFetch('/api/ministries/admin').then((r) => r ?? []);
 
 /* ════════════════════════════════
    Toast

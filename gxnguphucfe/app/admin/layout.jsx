@@ -74,6 +74,25 @@ export default function AdminLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [dateStr, setDateStr] = useState('');
 
+  // Giao diện Dark/Light của khu vực quản trị — lưu lựa chọn vào localStorage
+  // để giữ nguyên qua các lần truy cập sau. Mặc định 'dark' (giao diện gốc).
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('gxnp-admin-theme');
+    if (saved === 'light' || saved === 'dark') {
+      setTheme(saved);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      window.localStorage.setItem('gxnp-admin-theme', next);
+      return next;
+    });
+  };
+
   useEffect(() => {
     setDateStr(new Date().toLocaleDateString('vi-VN', {
       weekday: 'long',
@@ -116,7 +135,7 @@ export default function AdminLayout({ children }) {
   // ở layout gốc (html/body) không lan xuống được các thẻ con sâu như thẻ này.
   if (loading || !user) {
     return (
-      <div className={styles.authGate} suppressHydrationWarning>
+      <div className={styles.authGate} data-admin-theme={theme} suppressHydrationWarning>
         {loading ? 'Đang kiểm tra đăng nhập...' : 'Đang chuyển hướng...'}
       </div>
     );
@@ -125,7 +144,7 @@ export default function AdminLayout({ children }) {
   const avatarLetter = (user.fullName || user.email || 'A').trim().charAt(0).toUpperCase();
 
   return (
-    <div className={styles.adminShell}>
+    <div className={styles.adminShell} data-admin-theme={theme}>
       {/* SIDEBAR */}
       <aside className={`${styles.adminSidebar} ${collapsed ? styles.collapsed : ''}`}>
 
@@ -188,6 +207,14 @@ export default function AdminLayout({ children }) {
         <div className={styles.sidebarFooter}>
           <button className={styles.collapseBtn} onClick={() => setCollapsed(!collapsed)}>
             {collapsed ? '▶' : '◀'}
+          </button>
+          <button
+            type="button"
+            className={styles.themeToggleBtn}
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+          >
+            {theme === 'dark' ? '☀' : '☾'}
           </button>
           {!collapsed && (
             <button type="button" onClick={handleLogout} className={styles.logoutBtn}>

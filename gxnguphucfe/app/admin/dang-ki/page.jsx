@@ -6,7 +6,7 @@ import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useE
 
 /* ── Config ── */
 import { authFetch } from '@/app/lib/authClient';
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { API_BASE_URL, apiFor } from '@/app/lib/apiClient';
 const PAGE_SIZE = 10;
 
 // Màu sắc hiển thị theo trạng thái — chỉ là style, nhãn (label) lấy từ BE.
@@ -36,18 +36,7 @@ function buildQuery({ page, search, classType, status, schoolYear }, classTypeVa
   return params.toString();
 }
 
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/catechism-registrations${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/catechism-registrations');
 
 const apiGetList = (filters, classTypeValueByKey) => apiFetch(`/admin?${buildQuery(filters, classTypeValueByKey)}`);
 const apiGetDetail = (id) => apiFetch(`/admin/${id}`);
@@ -57,7 +46,7 @@ const apiDelete = (id) => apiFetch(`/admin/${id}`, { method: 'DELETE' });
 
 async function apiExportExcel(filters, classTypeValueByKey) {
   const query = buildQuery({ ...filters, page: 1 }, classTypeValueByKey);
-  const res = await authFetch(`${BASE_URL}/api/catechism-registrations/admin/export?${query}`);
+  const res = await authFetch(`${API_BASE_URL}/api/catechism-registrations/admin/export?${query}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

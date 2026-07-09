@@ -5,11 +5,11 @@ import Link from "next/link";
 import "./News.css";
 import { resolveImageUrl } from "@/app/lib/uploadImage";
 import { usePageBanner } from "@/app/lib/usePageBanner";
+import { publicFor } from "@/app/lib/apiClient";
 
 /* ════════════════════════════════
    Config
 ════════════════════════════════ */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 const PAGE_SIZE = 6;
 
 // Map enum Category (string trả về từ backend) -> nhãn + màu badge hiển thị
@@ -48,17 +48,7 @@ function fmtDate(d) {
 /* ════════════════════════════════
    API helpers
 ════════════════════════════════ */
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/posts${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
+const apiFetch = publicFor("/api/posts");
 
 const apiGetPosts = ({ page = 1, search = "", category = "" }) => {
   const params = new URLSearchParams({ page, pageSize: PAGE_SIZE });

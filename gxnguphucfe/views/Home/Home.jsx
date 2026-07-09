@@ -5,8 +5,7 @@ import './Home.css';
 import { useContactInfo } from '@/app/lib/useContactInfo';
 import { useHomeSlides } from '@/app/lib/useHomeSlides';
 import { resolveImageUrl } from '@/app/lib/uploadImage';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { safePublicFetch } from '@/app/lib/apiClient';
 
 // Nhãn hiển thị cho chuyên mục bài viết — khớp với enum PostCategory ở backend.
 const CATEGORY_LABEL = {
@@ -41,17 +40,7 @@ function fmtDateBadge(d) {
     .toUpperCase();
 }
 
-async function safeGetPosts(query) {
-  try {
-    const res = await fetch(`${BASE_URL}/api/posts${query}`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
+const safeGetPosts = (query) => safePublicFetch(`/api/posts${query}`);
 
 // Ảnh slideshow mặc định, dùng khi admin chưa cấu hình ảnh nào ở trang quản trị Banner
 const DEFAULT_SLIDES = ['/images/slider1.JPG', '/images/slider2.JPG', '/images/slider3.JPG'];
@@ -89,8 +78,8 @@ export default function Home() {
 
       const [featuredData, recentData] = await Promise.all([
         safeGetPosts('/featured?take=3'),
-        // Lấy 1 lô bài viết gần đây (mọi chuyên mục) để dùng chung cho cả 2 mục:
-        // "Thông báo Giáo xứ" (hoạt động mới nhất) và "Sự kiện sắp tới" (lọc theo EventDate).
+        // Lấy 1 lô bài viết gần đây (mọi chuyên mục) để dùng cho mục
+        // "Thông báo Giáo xứ" (hoạt động mới nhất).
         safeGetPosts('?page=1&pageSize=30&sortBy=publishedAt&sortOrder=desc'),
       ]);
 
@@ -112,9 +101,26 @@ export default function Home() {
       });
       setAnnouncementPosts(latestActivity.slice(0, 3));
 
-      const now = Date.now();
-      const events = recentItems
-        .filter((p) => p.eventDate && new Date(p.eventDate).getTime() >= now)
+      // Sự kiện sắp tới: lấy trực tiếp từ Lịch giáo xứ (/admin/lich-le), KHÔNG
+      // còn lấy theo eventDate gắn trên bài viết như trước (dễ bị trống vì
+      // phải vừa có bài viết vừa gắn ngày). API lịch chỉ trả theo từng
+      // tháng nên cần gọi tháng hiện tại + tháng kế tiếp để chắc chắn có đủ
+      // sự kiện sắp tới kể cả khi đang ở cuối tháng.
+      const now = new Date();
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const [thisMonthEvents, nextMonthEvents] = await Promise.all([
+        safePublicFetch(`/api/parish-calendar-events?year=${now.getFullYear()}&month=${now.getMonth() + 1}`),
+        safePublicFetch(`/api/parish-calendar-events?year=${nextMonthDate.getFullYear()}&month=${nextMonthDate.getMonth() + 1}`),
+      ]);
+
+      const allCalendarEvents = [
+        ...(Array.isArray(thisMonthEvents) ? thisMonthEvents : []),
+        ...(Array.isArray(nextMonthEvents) ? nextMonthEvents : []),
+      ];
+
+      const nowMs = now.getTime();
+      const events = allCalendarEvents
+        .filter((ev) => ev.eventDate && new Date(ev.eventDate).getTime() >= nowMs)
         .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate))
         .slice(0, 3);
       setUpcomingEvents(events);
@@ -350,24 +356,31 @@ export default function Home() {
                 ) : upcomingEvents.length === 0 ? (
                   <p style={{ color: '#666' }}>Hiện chưa có sự kiện sắp tới nào.</p>
                 ) : (
-                  upcomingEvents.map((p, i) => (
-                    <Link
-                      key={p.id}
-                      href={`/news/${p.slug}`}
-                      style={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', textDecoration: 'none', display: 'block' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                        <div style={{ width: '8px', height: '8px', backgroundColor: i === 0 ? '#3b82f6' : '#9ca3af', borderRadius: '50%', marginTop: '6px', flexShrink: 0 }}></div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', color: i === 0 ? '#3b82f6' : '#9ca3af', fontWeight: '600', marginBottom: '6px' }}>
-                            {fmtDateBadge(p.eventDate)}
+                  upcomingEvents.map((ev, i) => {
+                    // Dòng phụ: ưu tiên giờ lễ + địa điểm (đúng dữ liệu lịch giáo xứ),
+                    // fallback sang mô tả nếu không có 2 trường trên.
+                    const metaParts = [ev.timeLabel, ev.location].filter(Boolean);
+                    const subLine = metaParts.length > 0 ? metaParts.join(' · ') : (ev.description || '');
+
+                    return (
+                      <Link
+                        key={ev.id}
+                        href="/calendar"
+                        style={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', textDecoration: 'none', display: 'block' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                          <div style={{ width: '8px', height: '8px', backgroundColor: i === 0 ? '#3b82f6' : '#9ca3af', borderRadius: '50%', marginTop: '6px', flexShrink: 0 }}></div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', color: i === 0 ? '#3b82f6' : '#9ca3af', fontWeight: '600', marginBottom: '6px' }}>
+                              {fmtDateBadge(ev.eventDate)}
+                            </div>
+                            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', margin: '0 0 4px 0' }}>{ev.title}</h3>
+                            {subLine && <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>{subLine}</p>}
                           </div>
-                          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', margin: '0 0 4px 0' }}>{p.title}</h3>
-                          <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>{p.excerpt}</p>
                         </div>
-                      </div>
-                    </Link>
-                  ))
+                      </Link>
+                    );
+                  })
                 )}
 
                 <Link

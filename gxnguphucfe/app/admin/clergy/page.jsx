@@ -6,8 +6,7 @@ import { uploadImage, resolveImageUrl } from '@/app/lib/uploadImage';
 import { useEnumOptions, toLabelMapByKey, toValueMapByKey } from '@/app/lib/useEnumOptions';
 
 /* ── Config ── */
-import { authFetch } from '@/app/lib/authClient';
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
+import { apiFor } from '@/app/lib/apiClient';
 
 const STATUSES_FILTER = [
   { key: 'all', label: 'Tất cả' },
@@ -32,18 +31,7 @@ const EMPTY_FORM = {
 /* ════════════════════════════════
    API helpers
 ════════════════════════════════ */
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/clergy-members${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/clergy-members');
 
 const apiGetAll = () => apiFetch('/admin');
 const apiCreate = (data) => apiFetch('/admin', { method: 'POST', body: JSON.stringify(data) });

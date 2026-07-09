@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authFetch } from '@/app/lib/authClient';
+import { API_BASE_URL, apiFor } from '@/app/lib/apiClient';
 import { resolveImageUrl } from '@/app/lib/uploadImage';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:7272';
 
 // Cache đơn giản trong bộ nhớ phiên làm việc, giống cách làm của usePageBanner:
 // danh sách ảnh slideshow hiếm khi đổi trong lúc app đang chạy nên chỉ cần gọi
@@ -13,7 +11,7 @@ let cachedPromise = null;
 
 function fetchHomeSlides() {
   if (!cachedPromise) {
-    cachedPromise = fetch(`${BASE_URL}/api/home-slides`)
+    cachedPromise = fetch(`${API_BASE_URL}/api/home-slides`)
       .then((res) => {
         if (!res.ok) throw new Error('Không tải được ảnh slideshow trang chủ');
         return res.json();
@@ -65,25 +63,7 @@ export function useHomeSlides() {
 
 /* ── API cho trang admin ── */
 
-async function apiFetch(path, opts = {}) {
-  const res = await authFetch(`${BASE_URL}/api/home-slides${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    let message = text;
-    try {
-      const parsed = JSON.parse(text);
-      message = parsed?.message || parsed?.title || text;
-    } catch {
-      // không phải JSON, giữ nguyên text
-    }
-    throw new Error(message || `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiFetch = apiFor('/api/home-slides');
 
 /** Lấy toàn bộ ảnh slideshow trang chủ — dùng cho trang quản trị */
 export const apiGetHomeSlides = () => apiFetch('');

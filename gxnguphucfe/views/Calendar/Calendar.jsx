@@ -5,8 +5,8 @@ import styles from "./Calendar.module.css";
 import { useContactInfo } from "@/app/lib/useContactInfo";
 import { usePageBanner } from "@/app/lib/usePageBanner";
 import { getLiturgicalInfo, SEASON_COLOR } from "@/app/lib/liturgicalCalendar";
+import { API_BASE_URL } from "@/app/lib/apiClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7272";
 const DAYS_OF_WEEK = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTH_NAMES = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
@@ -175,7 +175,7 @@ export default function CalendarPage() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`${BASE_URL}/api/parish-calendar-events?year=${year}&month=${month}`);
+        const res = await fetch(`${API_BASE_URL}/api/parish-calendar-events?year=${year}&month=${month}`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (alive) setEvents(Array.isArray(data) ? data : []);

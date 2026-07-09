@@ -100,16 +100,21 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IPageSettingService, PageSettingService>();
 builder.Services.AddScoped<IHomeSlideService, HomeSlideService>();
-
+builder.Services.AddScoped<IParishCalendarEventService, ParishCalendarEventService>();
+builder.Services.AddScoped<IMinistryRegistrationService, MinistryRegistrationService>();
 // Controllers
 builder.Services.AddControllers();
 
 // CORS
+// Trước đây origin bị hardcode "http://localhost:3000" nên khi deploy lên
+// domain thật, mọi request từ frontend production sẽ bị CORS chặn. Giờ dùng
+// lại đúng FrontendUrl đã cấu hình sẵn cho email (biến môi trường FRONTEND_URL),
+// đảm bảo luôn khớp với domain frontend đang chạy thật.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(emailSettings.FrontendUrl)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -158,6 +163,44 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Xử lý lỗi tập trung.
+//
+// Trước đây KHÔNG có middleware nào bắt exception toàn cục, và không controller
+// nào tự try/catch — nghĩa là bất kỳ lỗi không lường trước nào (mất kết nối DB,
+// null reference...) sẽ rơi vào trang lỗi mặc định của ASP.NET Core (HTML, hoặc
+// rỗng ở Production) thay vì JSON. Phía frontend (apiClient.js) luôn cố gắng
+// đọc `response.json().message` để hiển thị lỗi cho người dùng — với response
+// rỗng/không phải JSON, người dùng chỉ thấy "HTTP 500" vô nghĩa.
+//
+// Middleware này đảm bảo MỌI lỗi không được xử lý đều trả về JSON dạng
+// { message: "..." } giống các lỗi nghiệp vụ (400/404) mà API đã trả ở nơi khác,
+// đồng thời ghi log đầy đủ exception ở phía server để dev debug.
+// ─────────────────────────────────────────────────────────────────────────
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var exception = feature?.Error;
+
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(exception, "Lỗi không được xử lý khi gọi {Method} {Path}",
+            context.Request.Method, context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        // Ở Development lộ message thật để dễ debug; ở Production giấu chi tiết
+        // nội bộ (connection string, stack trace...) để tránh lộ thông tin nhạy cảm.
+        var message = app.Environment.IsDevelopment() && exception != null
+            ? exception.Message
+            : "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.";
+
+        await context.Response.WriteAsJsonAsync(new { message });
+    });
+});
 
 // Đảm bảo thư mục lưu ảnh upload tồn tại trước khi phục vụ static files
 var uploadsRoot = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads");
