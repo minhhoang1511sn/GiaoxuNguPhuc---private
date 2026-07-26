@@ -1,8 +1,7 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using GiaoxuNguPhucBE.Config;
+﻿using GiaoxuNguPhucBE.Config;
 using GiaoxuNguPhucBE.Data;
 using GiaoxuNguPhucBE.DTOs;
+using GiaoxuNguPhucBE.Helpers;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Models;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +25,7 @@ namespace GiaoxuNguPhucBE.Services
             {
                 FullName = request.FullName.Trim(),
                 Email = email,
-                PasswordHash = HashPassword(request.Password),
+                PasswordHash = PasswordHasher.Hash(request.Password),
                 Role = UserRole.User,
                 IsActive = true,
                 // Tài khoản tự đăng ký phải chờ Admin duyệt mới đăng nhập được.
@@ -50,7 +49,7 @@ namespace GiaoxuNguPhucBE.Services
             var email = request.Email.Trim().ToLowerInvariant();
             var user = await db.Users.Include(u => u.Ministry).FirstOrDefaultAsync(x => x.Email == email);
 
-            if (user == null || user.PasswordHash != HashPassword(request.Password))
+            if (user == null || !PasswordHasher.Verify(request.Password, user.PasswordHash, out var needsRehash))
                 throw new UnauthorizedAccessException("Email hoặc mật khẩu không đúng");
 
             if (user.ApprovalStatus == UserApprovalStatus.Pending)
@@ -61,6 +60,12 @@ namespace GiaoxuNguPhucBE.Services
 
             if (!user.IsActive)
                 throw new UnauthorizedAccessException("Tài khoản đã bị khoá");
+
+            // Đăng nhập đúng bằng hash cũ (SHA256 không salt) hoặc hash PBKDF2 với số vòng
+            // lặp thấp hơn cấu hình hiện tại -> âm thầm nâng cấp lên hash mới ngay lúc này,
+            // không cần bắt user đổi mật khẩu thủ công.
+            if (needsRehash)
+                user.PasswordHash = PasswordHasher.Hash(request.Password);
 
             user.LastLoginAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
@@ -173,15 +178,6 @@ namespace GiaoxuNguPhucBE.Services
 
             if (tokens.Count > 0)
                 await db.SaveChangesAsync();
-        }
-
-        // Giữ nguyên thuật toán hash (SHA256) đã dùng từ trước để không phá vỡ mật khẩu
-        // của các tài khoản đã đăng ký trước đây.
-        private static string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
         }
 
         // Gửi email báo cho Admin biết có tài khoản mới đăng ký đang chờ duyệt.

@@ -102,6 +102,7 @@ builder.Services.AddScoped<IPageSettingService, PageSettingService>();
 builder.Services.AddScoped<IHomeSlideService, HomeSlideService>();
 builder.Services.AddScoped<IParishCalendarEventService, ParishCalendarEventService>();
 builder.Services.AddScoped<IMinistryRegistrationService, MinistryRegistrationService>();
+builder.Services.AddScoped<INewsletterService, NewsletterService>();
 // Controllers
 builder.Services.AddControllers();
 

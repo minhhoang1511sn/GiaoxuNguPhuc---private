@@ -10,7 +10,7 @@ namespace GiaoxuNguPhucBE.Models
         [Required]
         public string FullName { get; set; }
 
-        [Required, EmailAddress]
+        [Required, EmailAddress, MaxLength(255)]
         public string Email { get; set; }
 
         public string? AvatarUrl { get; set; }

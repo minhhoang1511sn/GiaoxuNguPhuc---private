@@ -40,8 +40,13 @@ const apiFetch = apiFor('/api/catechism-registrations');
 
 const apiGetList = (filters, classTypeValueByKey) => apiFetch(`/admin?${buildQuery(filters, classTypeValueByKey)}`);
 const apiGetDetail = (id) => apiFetch(`/admin/${id}`);
+// Backend nhận RegistrationStatus dạng SỐ (Pending=0, Confirmed=1, Cancelled=2) —
+// .NET/System.Text.Json mặc định KHÔNG tự parse chuỗi "Confirmed" thành enum,
+// nên phải map sang số trước khi gửi PUT, dù list/detail trả về status dạng chuỗi.
+const STATUS_CODE = { Pending: 0, Confirmed: 1, Cancelled: 2 };
+
 const apiUpdateStatus = (id, status) =>
-  apiFetch(`/admin/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+  apiFetch(`/admin/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: STATUS_CODE[status] }) });
 const apiDelete = (id) => apiFetch(`/admin/${id}`, { method: 'DELETE' });
 
 async function apiExportExcel(filters, classTypeValueByKey) {

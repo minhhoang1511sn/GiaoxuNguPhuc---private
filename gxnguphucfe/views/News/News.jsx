@@ -59,12 +59,18 @@ const apiGetPosts = ({ page = 1, search = "", category = "" }) => {
 
 const apiGetFeatured = (take = 3) => apiFetch(`/featured?take=${take}`);
 
+const apiSubscribeNewsletter = publicFor("/api/newsletter");
+const apiNewsletterSubscribe = (email) =>
+  apiSubscribeNewsletter("/subscribe", { method: "POST", body: JSON.stringify({ email }) });
+
 /* ════════════════════════════════
    Component
 ════════════════════════════════ */
 export default function NewsPage() {
   const { bannerUrl } = usePageBanner("news");
   const [email, setEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState(null); // { type: 'success'|'error', msg }
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
@@ -136,10 +142,21 @@ export default function NewsPage() {
     setActiveCategory((prev) => (prev === key ? "" : key));
   }
 
-  function handleNewsletterSubmit(e) {
+  async function handleNewsletterSubmit(e) {
     e.preventDefault();
-    // TODO: nối API đăng ký nhận tin khi backend có endpoint tương ứng
-    setEmail("");
+    if (newsletterLoading) return;
+
+    setNewsletterLoading(true);
+    setNewsletterStatus(null);
+    try {
+      const result = await apiNewsletterSubscribe(email.trim());
+      setNewsletterStatus({ type: "success", msg: result?.message ?? "Đăng ký nhận tin thành công." });
+      setEmail("");
+    } catch (err) {
+      setNewsletterStatus({ type: "error", msg: err.message || "Đăng ký nhận tin thất bại. Vui lòng thử lại." });
+    } finally {
+      setNewsletterLoading(false);
+    }
   }
 
   return (
@@ -346,10 +363,15 @@ export default function NewsPage() {
                   className="news-newsletterInput"
                   required
                 />
-                <button type="submit" className="news-newsletterBtn">
-                  Đăng ký ngay
+                <button type="submit" className="news-newsletterBtn" disabled={newsletterLoading}>
+                  {newsletterLoading ? "Đang gửi..." : "Đăng ký ngay"}
                 </button>
               </div>
+              {newsletterStatus && (
+                <p className={`news-newsletterMsg news-newsletterMsg--${newsletterStatus.type}`}>
+                  {newsletterStatus.msg}
+                </p>
+              )}
             </form>
           </aside>
         </div>

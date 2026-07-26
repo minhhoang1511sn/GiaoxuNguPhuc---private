@@ -1,6 +1,7 @@
 ﻿using GiaoxuNguPhucBE.Config;
 using GiaoxuNguPhucBE.Data;
 using GiaoxuNguPhucBE.DTOs;
+using GiaoxuNguPhucBE.Helpers;
 using GiaoxuNguPhucBE.Interfaces;
 using GiaoxuNguPhucBE.Models;
 using GiaoxuNguPhucBE.Pagination;
@@ -43,10 +44,12 @@ namespace GiaoxuNguPhucBE.Services
             var user = await db.Users.FindAsync(userId)
                 ?? throw new ArgumentException($"Không tìm thấy tài khoản id {userId}");
 
-            if (user.PasswordHash != HashPassword(dto.CurrentPassword))
+            if (!PasswordHasher.Verify(dto.CurrentPassword, user.PasswordHash, out _))
                 throw new InvalidOperationException("Mật khẩu hiện tại không đúng");
 
-            user.PasswordHash = HashPassword(dto.NewPassword);
+            // Đặt mật khẩu mới -> luôn dùng thuật toán hash hiện tại (PBKDF2), bất kể hash cũ
+            // đang ở định dạng nào.
+            user.PasswordHash = PasswordHasher.Hash(dto.NewPassword);
 
             // Đổi mật khẩu xong thì thu hồi toàn bộ refresh token đang có — buộc
             // đăng nhập lại ở mọi thiết bị bằng mật khẩu mới, phòng trường hợp
@@ -130,7 +133,7 @@ namespace GiaoxuNguPhucBE.Services
             {
                 FullName = dto.FullName.Trim(),
                 Email = email,
-                PasswordHash = HashPassword(dto.Password),
+                PasswordHash = PasswordHasher.Hash(dto.Password),
                 Role = dto.Role,
                 MinistryId = dto.Role == UserRole.Admin ? null : dto.MinistryId,
                 IsActive = true,
@@ -236,7 +239,7 @@ namespace GiaoxuNguPhucBE.Services
                 ? GenerateRandomPassword()
                 : dto.NewPassword.Trim();
 
-            user.PasswordHash = HashPassword(newPassword);
+            user.PasswordHash = PasswordHasher.Hash(newPassword);
 
             // Đặt mật khẩu mới xong thì thu hồi mọi phiên đăng nhập hiện có, buộc đăng nhập lại
             // bằng mật khẩu mới — giống hành vi tự đổi mật khẩu (ChangePasswordAsync).
@@ -284,13 +287,6 @@ namespace GiaoxuNguPhucBE.Services
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────
-
-        private static string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
 
         // Sinh mật khẩu ngẫu nhiên an toàn, dễ đọc/gõ lại (loại bỏ ký tự dễ nhầm lẫn như 0/O, 1/l/I).
         private static string GenerateRandomPassword(int length = 10)

@@ -23,6 +23,7 @@ namespace GiaoxuNguPhucBE.Data
         public DbSet<ParishCalendarEvent> ParishCalendarEvents { get; set; }
         public DbSet<PageSetting> PageSettings { get; set; }
         public DbSet<HomeSlide> HomeSlides { get; set; }
+        public DbSet<NewsletterSubscriber> NewsletterSubscribers { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -50,6 +51,21 @@ namespace GiaoxuNguPhucBE.Data
                 .WithMany(m => m.Members)
                 .HasForeignKey(u => u.MinistryId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // User.Email: trước đây KHÔNG có index -> Login/Register (AnyAsync/FirstOrDefaultAsync
+            // theo Email) phải full table scan bảng Users mỗi lần gọi. Thêm unique index vừa tăng
+            // tốc tra cứu, vừa chặn trùng email ở tầng DB (thay vì chỉ dựa vào check AnyAsync() ở
+            // code, vốn có thể bị race condition nếu 2 request đăng ký cùng email gần như đồng thời).
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // NewsletterSubscriber.Email: unique — chặn 1 email đăng ký nhận tin nhiều lần
+            // ở tầng DB (thay vì chỉ check AnyAsync() ở code, tránh race condition khi 2
+            // request đăng ký cùng email gần như đồng thời).
+            modelBuilder.Entity<NewsletterSubscriber>()
+                .HasIndex(n => n.Email)
+                .IsUnique();
 
             // Post.Slug: unique, dùng để truy cập theo URL thân thiện
             modelBuilder.Entity<Post>()

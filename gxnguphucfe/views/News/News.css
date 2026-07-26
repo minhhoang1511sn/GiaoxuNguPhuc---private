@@ -597,6 +597,24 @@
   background-color: #0b5cb5;
 }
 
+.news-newsletterBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.news-newsletterMsg {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+}
+
+.news-newsletterMsg--success {
+  color: #0f9d58;
+}
+
+.news-newsletterMsg--error {
+  color: #d93025;
+}
+
 /* ===== FOOTER ===== */
 .news-footer {
   background: white;
