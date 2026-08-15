@@ -24,6 +24,7 @@ namespace GiaoxuNguPhucBE.Data
         public DbSet<PageSetting> PageSettings { get; set; }
         public DbSet<HomeSlide> HomeSlides { get; set; }
         public DbSet<NewsletterSubscriber> NewsletterSubscribers { get; set; }
+        public DbSet<ContactMessage> ContactMessages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -66,6 +67,11 @@ namespace GiaoxuNguPhucBE.Data
             modelBuilder.Entity<NewsletterSubscriber>()
                 .HasIndex(n => n.Email)
                 .IsUnique();
+
+            // ContactMessage.IsRead: hỗ trợ query đếm/lọc tin nhắn chưa đọc ở trang quản trị
+            // (badge thông báo) mà không phải quét toàn bảng.
+            modelBuilder.Entity<ContactMessage>()
+                .HasIndex(m => m.IsRead);
 
             // Post.Slug: unique, dùng để truy cập theo URL thân thiện
             modelBuilder.Entity<Post>()

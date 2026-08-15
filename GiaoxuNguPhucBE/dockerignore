@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+.env
+.env.*
+!.env.example
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
+_fix_scripts/
+*.md

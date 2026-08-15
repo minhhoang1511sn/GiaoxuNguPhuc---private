@@ -4,6 +4,7 @@ import { useState } from "react";
 import "./Contact.css";
 import { useContactInfo } from "@/app/lib/useContactInfo";
 import { usePageBanner } from "@/app/lib/usePageBanner";
+import { publicFor } from "@/app/lib/apiClient";
 
 const ICONS = {
   address: (
@@ -36,6 +37,11 @@ const subjectOptions = [
   "Khác",
 ];
 
+// POST /api/contact-messages - gửi tin nhắn liên hệ (công khai, không cần đăng nhập)
+const apiContactMessages = publicFor("/api/contact-messages");
+const apiSendContactMessage = (payload) =>
+  apiContactMessages("", { method: "POST", body: JSON.stringify(payload) });
+
 export default function ContactPage() {
   const { contact, loading } = useContactInfo();
   const { bannerUrl } = usePageBanner("contact");
@@ -46,14 +52,37 @@ export default function ContactPage() {
     subject: subjectOptions[0],
     message: "",
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null); // { type: 'success' | 'error', msg }
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = () => {
-    // Handle form submission
-    alert("Tin nhắn của bạn đã được gửi. Chúng tôi sẽ phản hồi sớm nhất!");
+  const handleSubmit = async () => {
+    if (submitting) return;
+
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      setSubmitStatus({ type: "error", msg: "Vui lòng nhập đầy đủ họ tên, email và nội dung tin nhắn." });
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitStatus(null);
+    try {
+      await apiSendContactMessage({
+        fullName: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject,
+        content: form.message.trim(),
+      });
+      setSubmitStatus({ type: "success", msg: "Tin nhắn của bạn đã được gửi. Chúng tôi sẽ phản hồi sớm nhất!" });
+      setForm({ name: "", email: "", subject: subjectOptions[0], message: "" });
+    } catch (err) {
+      setSubmitStatus({ type: "error", msg: err.message || "Gửi tin nhắn thất bại. Vui lòng thử lại." });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const infoCards = [
@@ -221,8 +250,14 @@ export default function ContactPage() {
                 />
               </div>
 
-              <button className="contact-submit-btn" onClick={handleSubmit}>
-                <span>Gửi tin nhắn</span>
+              {submitStatus && (
+                <p className={`contact-submit-msg contact-submit-msg--${submitStatus.type}`}>
+                  {submitStatus.msg}
+                </p>
+              )}
+
+              <button className="contact-submit-btn" onClick={handleSubmit} disabled={submitting}>
+                <span>{submitting ? "Đang gửi..." : "Gửi tin nhắn"}</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                 </svg>

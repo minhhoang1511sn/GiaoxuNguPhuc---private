@@ -1,0 +1,55 @@
+# Render Blueprint - tự động tạo Web Service cho backend khi bạn dùng
+# "New +" > "Blueprint" trên Render và trỏ vào repo này.
+# Sau khi tạo, vào Render Dashboard > service > Environment để điền các biến
+# đánh dấu "sync: false" (đó là các giá trị bí mật, Blueprint không tự điền).
+
+services:
+  - type: web
+    name: giaoxunguphuc-be
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: GiaoxuNguPhucBE
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_SSLMODE
+        value: Preferred
+      - key: JWT_KEY
+        sync: false
+      - key: JWT_ISSUER
+        value: GiaoxuNguPhucBE
+      - key: JWT_AUDIENCE
+        value: GiaoxuNguPhucFE
+      - key: JWT_ACCESS_TOKEN_MINUTES
+        value: "15"
+      - key: JWT_REFRESH_TOKEN_DAYS
+        value: "7"
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: "Giao xu Ngu Phuc"
+      - key: SMTP_ENABLE_SSL
+        value: "true"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

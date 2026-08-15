@@ -38,6 +38,7 @@ const fullMenuItems = [
     group: 'Hệ thống',
     items: [
       { href: '/admin/contact-info', icon: '☏', label: 'Thông tin liên hệ' },
+      { href: '/admin/messages', icon: '✉', label: 'Tin nhắn liên hệ', badge: '' },
     ],
   },
   {
@@ -153,7 +154,7 @@ export default function AdminLayout({ children }) {
         <div className={styles.sidebarLogo}>
           <div className={styles.logoIconWrap}>
             <Image
-              src="/images/logo.jpg"
+              src="/images/logo.ico"
               alt="Logo Giáo xứ Ngũ Phúc"
               width={40}
               height={40}

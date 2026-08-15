@@ -14,7 +14,7 @@ function Footer() {
             <div className="footer-brand">
               <div className="logo-icon">
                 <Image 
-                  src="/images/logo.jpg" 
+                  src="/images/logo.ico" 
                   alt="Logo Giáo xứ Ngũ Phúc" 
                   width={44} 
                   height={44} 

@@ -195,7 +195,7 @@ export default function Home() {
                 <span>Đăng ký</span>
               </Link>
 
-              {contact.youtube ? (
+              {/* {contact.youtube ? (
                 <a href={contact.youtube} target="_blank" rel="noopener noreferrer" className="quick-action-item">
                   <div className="quick-icon bg-red">
                     <i className="bi bi-play-btn"></i>
@@ -209,7 +209,7 @@ export default function Home() {
                   </div>
                   <span>Trực tuyến</span>
                 </Link>
-              )}
+              )} */}
             </div>
           </div>
         </div>

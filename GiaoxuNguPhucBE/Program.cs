@@ -19,7 +19,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"))
     .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
     .Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-    .Replace("${DB_PASS}", Environment.GetEnvironmentVariable("DB_PASS"));
+    .Replace("${DB_PASS}", Environment.GetEnvironmentVariable("DB_PASS"))
+    // SslMode: mặc định "Preferred" (dùng SSL nếu server hỗ trợ, không có thì
+    // vẫn kết nối bình thường) -> chạy được cả với MySQL local (không SSL) lẫn
+    // MySQL cloud (TiDB Cloud, Aiven...) yêu cầu SSL bắt buộc ("Required").
+    .Replace("${DB_SSLMODE}", Environment.GetEnvironmentVariable("DB_SSLMODE") ?? "Preferred");
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -103,6 +107,7 @@ builder.Services.AddScoped<IHomeSlideService, HomeSlideService>();
 builder.Services.AddScoped<IParishCalendarEventService, ParishCalendarEventService>();
 builder.Services.AddScoped<IMinistryRegistrationService, MinistryRegistrationService>();
 builder.Services.AddScoped<INewsletterService, NewsletterService>();
+builder.Services.AddScoped<IContactMessageService, ContactMessageService>();
 // Controllers
 builder.Services.AddControllers();
 

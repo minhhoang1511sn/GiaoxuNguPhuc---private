@@ -301,6 +301,25 @@
   box-shadow: 0 6px 16px rgba(23,84,207,0.35);
 }
 
+.contact-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.contact-submit-msg {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+}
+
+.contact-submit-msg--success {
+  color: #0f9d58;
+}
+
+.contact-submit-msg--error {
+  color: #d93025;
+}
+
 /* ===== MAP SECTION ===== */
 .contact-map-section {
   display: flex;
